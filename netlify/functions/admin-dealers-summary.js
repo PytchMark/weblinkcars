@@ -25,7 +25,7 @@ exports.handler = async (event) => {
     return jsonResponse(400, { ok: false, error: "Invalid month format." });
   }
 
-  const supabase = auth.supabase;
+  const supabase = createSupabaseServiceClient();
 
   const [dealersRes, vehiclesRes, requestsRes] = await Promise.all([
     supabase.from("dealers").select("dealer_id, name, status"),

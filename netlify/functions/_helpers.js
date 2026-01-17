@@ -1,5 +1,6 @@
 "use strict";
 
+const jwt = require("jsonwebtoken");
 const { createSupabaseServiceClient } = require("../../services/supabase");
 
 function jsonResponse(statusCode, payload) {
@@ -26,6 +27,27 @@ function getBearerToken(event) {
   const header = event.headers?.authorization || event.headers?.Authorization || "";
   if (header.startsWith("Bearer ")) return header.slice(7);
   return null;
+}
+
+function requireAdmin(event) {
+  const token = getBearerToken(event);
+  if (!token) {
+    return { error: jsonResponse(401, { ok: false, error: "Missing authorization token." }) };
+  }
+
+  try {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      return { error: jsonResponse(500, { ok: false, error: "JWT secret not configured." }) };
+    }
+    const decoded = jwt.verify(token, secret);
+    if (decoded?.role !== "admin") {
+      return { error: jsonResponse(403, { ok: false, error: "Insufficient permissions." }) };
+    }
+    return { admin: decoded };
+  } catch (_err) {
+    return { error: jsonResponse(401, { ok: false, error: "Invalid or expired token." }) };
+  }
 }
 
 async function requireAuth(event, allowedRoles = []) {
@@ -87,6 +109,7 @@ module.exports = {
   jsonResponse,
   parseJsonBody,
   requireAuth,
+  requireAdmin,
   parseDealerIdFromPath,
   normalizeDealerIdInput,
   normalizeDealerIdsInput,
