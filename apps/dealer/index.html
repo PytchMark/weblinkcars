@@ -310,19 +310,20 @@
     /* Login */
     .login{
       min-height:calc(100vh - 64px);
-      display:grid;place-items:center;
+      display:grid;
+      place-items:center;
       padding:32px var(--gutter);
     }
     .login-card{
-      width:min(520px,100%);
-      background:var(--surface);
+      width:min(420px, 100%);
+      background:rgba(255,255,255,.94);
       border:1px solid var(--line);
-      border-radius:var(--radius-lg);
-      box-shadow:var(--shadow);
-      padding:18px;
+      border-radius:22px;
+      box-shadow:0 22px 48px rgba(15,23,42,.18);
+      padding:28px 26px;
     }
-    .login-card h1{margin:0 0 6px;font-size:18px;font-weight:950}
-    .login-card p{margin:0 0 14px;color:var(--muted);font-size:12px;line-height:1.5}
+    .login-card h1{margin:0 0 8px;font-size:20px;font-weight:950}
+    .login-card p{margin:0 0 18px;color:var(--muted);font-size:12px;line-height:1.5}
 
     .foot{
       margin-top:14px;
@@ -382,21 +383,21 @@
 
     <div class="form">
       <div>
-        <label for="dealerId">Dealer ID</label>
-        <input class="field" id="dealerId" placeholder="DEALER-0001" autocomplete="username" />
-        <div class="help">Use the Dealer ID provided by Pytch (letters/numbers/dash).</div>
+        <label for="dealerEmail">Email</label>
+        <input class="field" id="dealerEmail" placeholder="dealer@company.com" autocomplete="username" />
+        <div class="help">Use the email address tied to your Supabase login.</div>
       </div>
       <div>
-        <label for="passcode">Passcode</label>
-        <input class="field" id="passcode" placeholder="••••••••" type="password" autocomplete="current-password" />
-        <div class="help">This passcode grants editing rights for your inventory.</div>
+        <label for="dealerPassword">Password</label>
+        <input class="field" id="dealerPassword" placeholder="••••••••" type="password" autocomplete="current-password" />
+        <div class="help">This password grants editing rights for your inventory.</div>
       </div>
       <button class="btn btn-primary" id="loginBtn" type="button">Sign in</button>
       <div class="statusline" id="loginStatus"></div>
     </div>
 
     <div class="foot">
-      <div class="help">Need access? Ask support for your Dealer ID and passcode.</div>
+      <div class="help">Need access? Ask support to provision your dealer login.</div>
       <div class="help">Built by Pytch LLC · © <span id="year"></span></div>
     </div>
   </div>
@@ -481,7 +482,7 @@
           <div class="panel-head">
             <div>
               <h1>Inventory Manager</h1>
-              <p>Add, update, or archive vehicles. Media links save to Airtable (Cloudinary recommended).</p>
+              <p>Add, update, or archive vehicles. Media links save to Supabase Storage.</p>
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
               <button class="btn btn-primary" id="newVehicleBtn2" type="button">+ Add Vehicle</button>
@@ -569,7 +570,7 @@
           <div class="panel-head">
             <div>
               <h1>Performance</h1>
-              <p>High-level view of conversions and sales activity (based on Airtable status + timestamps).</p>
+              <p>High-level view of conversions and sales activity (based on Supabase status + timestamps).</p>
             </div>
           </div>
           <div class="panel-body">
@@ -627,8 +628,6 @@
     </div>
     <div class="drawer-body">
       <form id="vehForm" class="form" novalidate>
-        <input type="hidden" id="airtableRecordId" value="" />
-
         <div class="row">
           <div>
             <label for="vehicleId">Vehicle ID</label>
@@ -724,14 +723,14 @@
         </div>
 
         <div>
-          <label for="cloudinaryImageUrls">Cloudinary Image URLs (optional)</label>
-          <textarea class="field" id="cloudinaryImageUrls" rows="4" placeholder='Paste URLs (JSON array, comma, or newline).'></textarea>
-          <div class="help">Your storefront will prioritize Airtable attachments first, then Cloudinary URLs.</div>
+          <label for="imageUrls">Image URLs (optional)</label>
+          <textarea class="field" id="imageUrls" rows="4" placeholder='Paste URLs (JSON array, comma, or newline).'></textarea>
+          <div class="help">Supabase Storage uploads will populate this automatically.</div>
         </div>
 
         <div>
-          <label for="cloudinaryVideoUrl">Cloudinary Video URL (optional)</label>
-          <input class="field" id="cloudinaryVideoUrl" placeholder="https://…" />
+          <label for="videoUrl">Video URL (optional)</label>
+          <input class="field" id="videoUrl" placeholder="https://…" />
         </div>
 
         <div class="row">
@@ -773,7 +772,7 @@
         </div>
 
         <div class="statusline" id="vehStatus"></div>
-        <div class="help">No deletes. Archive instead. Changes sync to Airtable instantly.</div>
+        <div class="help">No deletes. Archive instead. Changes sync to Supabase instantly.</div>
       </form>
     </div>
   </div>
@@ -782,18 +781,18 @@
 <script>
   /**
    * Dealer Portal Frontend
-   * - Uses server-side Airtable access via /api/dealer
-   * - Stores a short-lived token in localStorage (best-effort).
+   * - Uses Supabase-backed APIs via /api/dealer
+   * - Stores a short-lived access token in localStorage (best-effort).
    *
    * Required server endpoints (expected):
-   *  POST /api/dealer/login            { dealerId, passcode } -> { token, dealer }
-   *  GET  /api/dealer/me               -> { dealer }
+   *  POST /api/dealer/login            { email, password } -> { session, dealer }
    *  GET  /api/dealer/vehicles         -> { vehicles }
    *  POST /api/dealer/vehicles         -> { vehicle }   (create/update)
-   *  POST /api/dealer/vehicles/:id/archive -> { ok:true }
+   *  PATCH /api/dealer/vehicles/:id    -> { vehicle }
    *  GET  /api/dealer/requests         -> { requests }
-   *  POST /api/dealer/requests/:id/status -> { request }
-   *  GET  /api/dealer/summary?month=YYYY-MM -> { kpis, dailyRequests }
+   *  PATCH /api/dealer/requests/:id    -> { request }
+   *  GET  /api/dealer/dashboard?month=YYYY-MM -> { kpis, dailyRequests }
+   *  POST /api/dealer/media/upload     -> { url }
    *
    * If any endpoint differs, update URLs in API section.
    */
@@ -814,8 +813,8 @@
   const logoutBtn = $('#logoutBtn');
 
   // Login
-  const dealerIdEl = $('#dealerId');
-  const passcodeEl = $('#passcode');
+  const dealerEmailEl = $('#dealerEmail');
+  const dealerPasswordEl = $('#dealerPassword');
   const loginBtn = $('#loginBtn');
   const loginStatus = $('#loginStatus');
 
@@ -920,23 +919,11 @@
   }
 
   function pickThumb(v){
-    const main = v?.['Main Photo'];
-    if(Array.isArray(main) && main[0]?.url) return main[0].url;
-    const gallery = v?.['Gallery Photos'];
-    if(Array.isArray(gallery) && gallery[0]?.url) return gallery[0].url;
-    const images = v?.images;
-    if(Array.isArray(images) && images[0]?.url) return images[0].url;
-
-    // Cloudinary URLs field (may be JSON/string)
-    const raw = v?.cloudinaryImageUrls;
-    if(raw){
-      try{
-        const parsed = JSON.parse(raw);
-        if(Array.isArray(parsed) && parsed[0]) return parsed[0];
-      }catch(_){
-        const first = String(raw).split(/\n|,/).map(x=>x.trim()).filter(Boolean)[0];
-        if(first) return first;
-      }
+    const images = v?.image_urls || v?.imageUrls || [];
+    if(Array.isArray(images) && images[0]) return images[0];
+    if(typeof images === 'string'){
+      const first = images.split(/\n|,/).map(x=>x.trim()).filter(Boolean)[0];
+      if(first) return first;
     }
     return '';
   }
@@ -997,25 +984,35 @@
     return res.json();
   }
 
+  async function apiPatch(url, payload){
+    const res = await fetch(url, {
+      method:'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify(payload || {}),
+      credentials:'include'
+    });
+    if(!res.ok){
+      const t = await res.text().catch(()=> '');
+      throw new Error(`Request failed (${res.status}) ${t}`);
+    }
+    return res.json();
+  }
+
   /** ---------------------------
    * Render
    * --------------------------*/
   function applyBranding(){
     const d = STATE.dealer;
-    const name = d?.name || d?.['Dealer Name'] || 'Dealer Portal';
-    const id = d?.dealerId || d?.['Dealer ID'] || '—';
+    const name = d?.name || 'Dealer Portal';
+    const id = d?.dealer_id || d?.dealerId || '—';
 
     sideDealerName.textContent = name;
     sideDealerId.textContent = id;
     hdrDealerName.textContent = name;
     hdrDealerSub.textContent = 'Inventory · Requests · Performance';
 
-    // Logo: allow logoUrl string or Airtable attachment field "Logo"
-    const logoUrl = d?.logoUrl || (() => {
-      const logo = d?.Logo;
-      if(Array.isArray(logo) && logo[0]?.url) return logo[0].url;
-      return '';
-    })();
+    // Logo: allow logoUrl string or Supabase logo_url field
+    const logoUrl = d?.logo_url || d?.logoUrl || '';
 
     if(logoUrl){
       dealerLogoBox.innerHTML = `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(name)} logo" />`;
@@ -1032,24 +1029,22 @@
     const status = STATE.invFilter.status;
 
     const list = STATE.vehicles.filter(v => {
-      const blob = [v.title, v.Make, v.Model, v.VIN, v.vehicleId, v['Vehicle ID']].filter(Boolean).join(' ').toLowerCase();
+      const blob = [v.title, v.make, v.model, v.vin, v.vehicle_id, v.vehicleId].filter(Boolean).join(' ').toLowerCase();
       if(q && !blob.includes(q)) return false;
-      const s = String(v.status || v.Status || '').toLowerCase();
+      const s = String(v.status || '').toLowerCase();
       if(status !== 'all' && s !== status) return false;
       return true;
     });
 
     invBody.innerHTML = list.map(v => {
       const thumb = pickThumb(v);
-      const title = escapeHtml(v.title || `${v.Year || ''} ${v.Make || ''} ${v.Model || ''}`.trim() || 'Vehicle');
-      const sub = escapeHtml([v.Year, v.Make, v.Model].filter(Boolean).join(' • '));
-      const vid = escapeHtml(v.vehicleId || v['Vehicle ID'] || '');
-      const vin = escapeHtml(v.VIN || '');
-      const price = moneyJMD(v.Price || v.price);
-      const st = statusPill(v.status || v.Status);
-      const updated = escapeHtml((v.updatedAt || v['updatedAt'] || v['Updated At'] || '').toString().slice(0,10));
-
-      const recordId = escapeHtml(v.airtableRecordId || v._recordId || '');
+      const title = escapeHtml(v.title || `${v.year || ''} ${v.make || ''} ${v.model || ''}`.trim() || 'Vehicle');
+      const sub = escapeHtml([v.year, v.make, v.model].filter(Boolean).join(' • '));
+      const vid = escapeHtml(v.vehicle_id || v.vehicleId || '');
+      const vin = escapeHtml(v.vin || '');
+      const price = moneyJMD(v.price);
+      const st = statusPill(v.status || '');
+      const updated = escapeHtml((v.updated_at || v.updatedAt || '').toString().slice(0,10));
 
       return `
         <tr>
@@ -1068,7 +1063,7 @@
           <td>${st}</td>
           <td>${updated || '—'}</td>
           <td>
-            <button class="mini-btn" data-act="edit" data-id="${vid}" data-rid="${recordId}">Edit</button>
+            <button class="mini-btn" data-act="edit" data-id="${vid}">Edit</button>
             <button class="mini-btn danger" data-act="archive" data-id="${vid}">Archive</button>
           </td>
         </tr>
@@ -1079,7 +1074,7 @@
     $$('[data-act="edit"]').forEach(b => {
       b.addEventListener('click', () => {
         const vid = b.getAttribute('data-id');
-        const v = STATE.vehicles.find(x => String(x.vehicleId || x['Vehicle ID']) === String(vid));
+        const v = STATE.vehicles.find(x => String(x.vehicle_id || x.vehicleId) === String(vid));
         if(v) openVehicleEditor(v);
       });
     });
@@ -1089,7 +1084,7 @@
         if(!vid) return;
         if(!confirm('Archive this vehicle? It will be hidden from the storefront.')) return;
         try{
-          await apiPost(`/api/dealer/vehicles/${encodeURIComponent(vid)}/archive`, {});
+          await apiPatch(`/api/dealer/vehicles/${encodeURIComponent(vid)}`, { status: 'archived', archived: true });
           await refreshAll();
         }catch(err){
           alert(err.message || 'Archive failed');
@@ -1106,7 +1101,7 @@
     const rstatus = STATE.reqFilter.status;
 
     const list = STATE.requests.filter(r => {
-      const blob = [r.requestId, r.name, r.phone, r.vehicleId, r.type].filter(Boolean).join(' ').toLowerCase();
+      const blob = [r.id, r.customer_name, r.phone, r.vehicle_id, r.request_type].filter(Boolean).join(' ').toLowerCase();
       if(q && !blob.includes(q)) return false;
       const s = String(r.status || '').toLowerCase();
       if(rstatus !== 'all' && s !== rstatus) return false;
@@ -1114,13 +1109,13 @@
     });
 
     reqBody.innerHTML = list.map(r => {
-      const rid = escapeHtml(r.requestId || '');
-      const type = escapeHtml(r.type || '');
-      const name = escapeHtml(r.name || '');
+      const rid = escapeHtml(r.id || '');
+      const type = escapeHtml(r.request_type || '');
+      const name = escapeHtml(r.customer_name || '');
       const phone = escapeHtml(r.phone || '');
       const email = escapeHtml(r.email || '');
-      const vehicleId = escapeHtml(r.vehicleId || '—');
-      const preferred = escapeHtml([r.preferredDate, r.preferredTime].filter(Boolean).join(' '));
+      const vehicleId = escapeHtml(r.vehicle_id || '—');
+      const preferred = escapeHtml([r.preferred_date, r.preferred_time].filter(Boolean).join(' '));
       const status = String(r.status || '').toLowerCase();
 
       const statusOptions = ['new','booked','closed']
@@ -1158,9 +1153,9 @@
         const id = sel.getAttribute('data-id');
         const status = sel.value;
         try{
-          await apiPost(`/api/dealer/requests/${encodeURIComponent(id)}/status`, { status });
+          await apiPatch(`/api/dealer/requests/${encodeURIComponent(id)}`, { status });
           // update local
-          const r = STATE.requests.find(x => x.requestId === id);
+          const r = STATE.requests.find(x => x.id === id);
           if(r) r.status = status;
           hydrateDash();
         }catch(err){
@@ -1204,7 +1199,7 @@
     const m = STATE.month;
     const soldThisMonth = vehicles.filter(v => {
       if(String(v.status||'').toLowerCase() !== 'sold') return false;
-      const d = String(v.updatedAt || v['updatedAt'] || '').slice(0,7);
+      const d = String(v.updated_at || v.updatedAt || '').slice(0,7);
       return d ? d === m : false;
     }).length;
 
@@ -1212,7 +1207,7 @@
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
     const newReqWeek = requests.filter(r => {
-      const dt = new Date(r.createdAt || r['createdAt'] || 0);
+      const dt = new Date(r.created_at || r.createdAt || 0);
       return dt instanceof Date && !isNaN(dt) && dt >= weekAgo;
     }).length;
 
@@ -1224,8 +1219,8 @@
     navKpi.textContent = `${available} live`;
 
     // Performance KPI
-    const reqMonth = requests.filter(r => String(r.createdAt||'').slice(0,7) === m).length;
-    const bookedMonth = requests.filter(r => String(r.createdAt||'').slice(0,7) === m && String(r.status||'').toLowerCase()==='booked').length;
+    const reqMonth = requests.filter(r => String(r.created_at||'').slice(0,7) === m).length;
+    const bookedMonth = requests.filter(r => String(r.created_at||'').slice(0,7) === m && String(r.status||'').toLowerCase()==='booked').length;
 
     kpiReqMonth.textContent = String(reqMonth);
     kpiBookedMonth.textContent = String(bookedMonth);
@@ -1309,7 +1304,7 @@
     const counts = Array(daysInMonth).fill(0);
 
     requests.forEach(r => {
-      const dt = new Date(r.createdAt || r['createdAt'] || 0);
+      const dt = new Date(r.created_at || r.createdAt || 0);
       if(isNaN(dt)) return;
       const key = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
       if(key !== month) return;
@@ -1328,7 +1323,6 @@
    * --------------------------*/
   function resetVehicleForm(){
     vehForm.reset();
-    $('#airtableRecordId').value = '';
     vehStatus.textContent = '';
     archiveVehicleBtn.style.display = 'none';
     drawerTitle.textContent = 'Add Vehicle';
@@ -1344,24 +1338,23 @@
 
     if(v){
       drawerTitle.textContent = 'Edit Vehicle';
-      $('#airtableRecordId').value = v.airtableRecordId || '';
-      $('#vehicleId').value = v.vehicleId || v['Vehicle ID'] || '';
-      $('#status').value = String(v.status || v.Status || 'available').toLowerCase();
+      $('#vehicleId').value = v.vehicle_id || v.vehicleId || '';
+      $('#status').value = String(v.status || 'available').toLowerCase();
       $('#title').value = v.title || '';
-      $('#make').value = v.Make || v.make || '';
-      $('#model').value = v.Model || v.model || '';
-      $('#year').value = v.Year || v.year || '';
-      $('#price').value = v.Price || v.price || '';
-      $('#vin').value = v.VIN || '';
-      $('#mileage').value = v.Mileage || '';
-      $('#transmission').value = v.Transmission || '';
-      $('#fuel').value = v['Fuel Type'] || '';
-      $('#body').value = v['Body Type'] || '';
-      $('#color').value = v.Color || '';
-      $('#notes').value = v['notes / description'] || v.Description || v.notes || '';
-      $('#cloudinaryImageUrls').value = v.cloudinaryImageUrls || '';
-      $('#cloudinaryVideoUrl').value = v.cloudinaryVideoUrl || '';
-      $('#availability').value = String(v.Availability === true ? 'true' : 'false');
+      $('#make').value = v.make || '';
+      $('#model').value = v.model || '';
+      $('#year').value = v.year || '';
+      $('#price').value = v.price || '';
+      $('#vin').value = v.vin || '';
+      $('#mileage').value = v.mileage || '';
+      $('#transmission').value = v.transmission || '';
+      $('#fuel').value = v.fuel_type || v.fuelType || '';
+      $('#body').value = v.body_type || v.bodyType || '';
+      $('#color').value = v.color || '';
+      $('#notes').value = v.description || v.notes || '';
+      $('#imageUrls').value = (v.image_urls || v.imageUrls || []).join('\n');
+      $('#videoUrl').value = v.video_url || v.videoUrl || '';
+      $('#availability').value = String(v.availability === false ? 'false' : 'true');
       $('#archived').value = String(v.archived === true ? 'true' : 'false');
 
       archiveVehicleBtn.style.display = 'inline-flex';
@@ -1370,7 +1363,7 @@
         if(!vid) return;
         if(!confirm('Archive this vehicle?')) return;
         try{
-          await apiPost(`/api/dealer/vehicles/${encodeURIComponent(vid)}/archive`, {});
+          await apiPatch(`/api/dealer/vehicles/${encodeURIComponent(vid)}`, { status: 'archived', archived: true });
           setDrawer(false);
           await refreshAll();
         }catch(err){
@@ -1383,26 +1376,25 @@
   }
 
   function buildVehiclePayload(){
-    // Map UI -> Airtable fields expected by server
+    // Map UI -> Supabase fields expected by server
     return {
-      airtableRecordId: cleanStr($('#airtableRecordId').value, 80) || undefined,
       vehicleId: cleanStr($('#vehicleId').value, 60) || undefined,
       status: cleanStr($('#status').value, 20),
       title: cleanStr($('#title').value, 120),
-      Make: cleanStr($('#make').value, 80),
-      Model: cleanStr($('#model').value, 80),
-      Year: Number($('#year').value || 0) || undefined,
-      Price: Number($('#price').value || 0) || undefined,
-      VIN: cleanStr($('#vin').value, 60),
-      Mileage: Number($('#mileage').value || 0) || undefined,
-      Transmission: cleanStr($('#transmission').value, 40),
-      'Fuel Type': cleanStr($('#fuel').value, 40),
-      'Body Type': cleanStr($('#body').value, 40),
-      Color: cleanStr($('#color').value, 40),
-      'notes / description': cleanStr($('#notes').value, 2000),
-      cloudinaryImageUrls: cleanStr($('#cloudinaryImageUrls').value, 5000),
-      cloudinaryVideoUrl: cleanStr($('#cloudinaryVideoUrl').value, 2000),
-      Availability: $('#availability').value === 'true',
+      make: cleanStr($('#make').value, 80),
+      model: cleanStr($('#model').value, 80),
+      year: Number($('#year').value || 0) || undefined,
+      price: Number($('#price').value || 0) || undefined,
+      vin: cleanStr($('#vin').value, 60),
+      mileage: Number($('#mileage').value || 0) || undefined,
+      transmission: cleanStr($('#transmission').value, 40),
+      fuelType: cleanStr($('#fuel').value, 40),
+      bodyType: cleanStr($('#body').value, 40),
+      color: cleanStr($('#color').value, 40),
+      description: cleanStr($('#notes').value, 2000),
+      imageUrls: cleanStr($('#imageUrls').value, 5000),
+      videoUrl: cleanStr($('#videoUrl').value, 2000),
+      availability: $('#availability').value === 'true',
       archived: $('#archived').value === 'true',
     };
   }
@@ -1423,28 +1415,30 @@
       .filter(Boolean);
   }
 
-  async function signCloudinaryUpload({ type, vehicleId }){
-    return apiPost("/api/dealer/cloudinary/sign", { type, vehicleId });
-  }
+  async function uploadToSupabase({ file, vehicleId }){
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('File read failed'));
+      reader.onload = () => {
+        const result = reader.result || '';
+        const parts = String(result).split(',');
+        resolve(parts.length > 1 ? parts[1] : '');
+      };
+      reader.readAsDataURL(file);
+    });
 
-  async function uploadToCloudinary({ file, type, vehicleId }){
-    const signed = await signCloudinaryUpload({ type, vehicleId });
-    if(!signed?.ok) throw new Error(signed?.error || "Cloudinary signing failed");
+    const payload = {
+      vehicleId,
+      filename: file.name,
+      contentType: file.type || 'application/octet-stream',
+      data: base64,
+    };
 
-    const endpoint = `https://api.cloudinary.com/v1_1/${signed.cloudName}/${signed.resourceType}/upload`;
-    const form = new FormData();
-    form.append("file", file);
-    form.append("api_key", signed.apiKey);
-    form.append("timestamp", signed.timestamp);
-    form.append("signature", signed.signature);
-    form.append("folder", signed.folder);
-
-    const res = await fetch(endpoint, { method: "POST", body: form });
-    const data = await res.json();
-    if(!res.ok || !data?.secure_url){
-      throw new Error(data?.error?.message || "Upload failed");
+    const res = await apiPost('/api/dealer/media/upload', payload);
+    if(!res?.url){
+      throw new Error('Upload failed');
     }
-    return data.secure_url;
+    return res.url;
   }
 
   async function handleMediaUpload(){
@@ -1476,26 +1470,26 @@
     try{
       const imageUrls = [];
       for(const file of images){
-        const url = await uploadToCloudinary({ file, type: "image", vehicleId });
+        const url = await uploadToSupabase({ file, vehicleId });
         imageUrls.push(url);
       }
 
       const videoUrls = [];
       for(const file of videos){
-        const url = await uploadToCloudinary({ file, type: "video", vehicleId });
+        const url = await uploadToSupabase({ file, vehicleId });
         videoUrls.push(url);
       }
 
       if(imageUrls.length){
-        const existing = parseUrlList($('#cloudinaryImageUrls').value);
+        const existing = parseUrlList($('#imageUrls').value);
         const next = [...existing, ...imageUrls];
-        $('#cloudinaryImageUrls').value = next.join("\n");
+        $('#imageUrls').value = next.join("\n");
       }
 
       if(videoUrls.length){
-        const existingVideos = parseUrlList($('#cloudinaryVideoUrl').value);
+        const existingVideos = parseUrlList($('#videoUrl').value);
         const next = [...existingVideos, ...videoUrls];
-        $('#cloudinaryVideoUrl').value = next.join("\n");
+        $('#videoUrl').value = next.join("\n");
       }
 
       uploadStatus.textContent = "Upload complete. Remember to save the vehicle.";
@@ -1512,9 +1506,10 @@
    * Data flow
    * --------------------------*/
   async function refreshAll(){
-    // Dealer profile
-    const me = await apiGet('/api/dealer/me');
-    STATE.dealer = me.dealer;
+    const storedDealer = localStorage.getItem('dealer.info');
+    if(!STATE.dealer && storedDealer){
+      try{ STATE.dealer = JSON.parse(storedDealer); }catch(_){ STATE.dealer = null; }
+    }
     applyBranding();
 
     // Vehicles + requests + summary in parallel
@@ -1522,7 +1517,7 @@
     const [veh, req, summary] = await Promise.all([
       apiGet('/api/dealer/vehicles'),
       apiGet('/api/dealer/requests'),
-      apiGet(`/api/dealer/summary?month=${encodeURIComponent(month)}`)
+      apiGet(`/api/dealer/dashboard?month=${encodeURIComponent(month)}`)
     ]);
 
     STATE.vehicles = veh.vehicles || [];
@@ -1630,17 +1625,18 @@
       loginBtn.disabled = true;
       loginBtn.textContent = 'Signing in…';
 
-      const dealerId = cleanStr(dealerIdEl.value, 60);
-      const passcode = cleanStr(passcodeEl.value, 120);
-      if(!dealerId || !passcode){
-        loginStatus.textContent = 'Dealer ID and passcode are required.';
+      const email = cleanStr(dealerEmailEl.value, 120).toLowerCase();
+      const password = cleanStr(dealerPasswordEl.value, 120);
+      if(!email || !password){
+        loginStatus.textContent = 'Email and password are required.';
         return;
       }
 
-      const res = await apiPost('/api/dealer/login', { dealerId, passcode });
-      STATE.token = res.token || '';
+      const res = await apiPost('/api/dealer/login', { email, password });
+      STATE.token = res.session?.accessToken || '';
       localStorage.setItem('dealer.token', STATE.token);
-      localStorage.setItem('dealer.dealerId', dealerId);
+      localStorage.setItem('dealer.dealerId', res?.dealer?.dealer_id || res?.dealer?.dealerId || '');
+      localStorage.setItem('dealer.info', JSON.stringify(res.dealer || {}));
 
       STATE.dealer = res.dealer || null;
       applyBranding();
@@ -1657,8 +1653,8 @@
     }
   });
 
-  dealerIdEl.addEventListener('keydown', (e) => { if(e.key==='Enter') loginBtn.click(); });
-  passcodeEl.addEventListener('keydown', (e) => { if(e.key==='Enter') loginBtn.click(); });
+  dealerEmailEl.addEventListener('keydown', (e) => { if(e.key==='Enter') loginBtn.click(); });
+  dealerPasswordEl.addEventListener('keydown', (e) => { if(e.key==='Enter') loginBtn.click(); });
 
   refreshBtn.addEventListener('click', async () => {
     try{
@@ -1676,6 +1672,7 @@
   logoutBtn.addEventListener('click', () => {
     localStorage.removeItem('dealer.token');
     localStorage.removeItem('dealer.dealerId');
+    localStorage.removeItem('dealer.info');
     STATE.token = '';
     STATE.dealer = null;
     STATE.vehicles = [];
@@ -1694,6 +1691,10 @@
     const token = localStorage.getItem('dealer.token') || '';
     if(token){
       STATE.token = token;
+      const storedDealer = localStorage.getItem('dealer.info');
+      if(storedDealer){
+        try{ STATE.dealer = JSON.parse(storedDealer); }catch(_){ STATE.dealer = null; }
+      }
       showApp();
       setTab('dashboard');
       refreshAll().catch(() => {
