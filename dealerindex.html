@@ -1,0 +1,1710 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dealer Portal · Inventory & Requests</title>
+  <meta name="description" content="Dealer portal to manage inventory, requests, and performance." />
+
+  <!-- Chart.js (light + fast) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root{
+      /* White / Red / Black system (match storefront) */
+      --bg:#f7f7f8;
+      --surface:#ffffff;
+      --surface-soft:#fafafa;
+      --ink:#0b0b0b;
+      --muted:#6b7280;
+      --muted-2:#9ca3af;
+
+      --brand:#dc2626;
+      --brand-2:#ef4444;
+      --brand-soft:#fee2e2;
+
+      --line:#e5e7eb;
+      --shadow:0 18px 40px rgba(15,23,42,.10);
+      --shadow-soft:0 10px 24px rgba(15,23,42,.08);
+
+      --radius:18px;
+      --radius-lg:26px;
+
+      --section:clamp(26px,4vw,44px);
+      --gutter:clamp(16px,4vw,22px);
+
+      --ok:#16a34a;
+      --warn:#f59e0b;
+      --slate:#334155;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at 0% 0%, rgba(220,38,38,.06), transparent 45%),
+        radial-gradient(circle at 85% 18%, rgba(239,68,68,.05), transparent 55%),
+        var(--bg);
+      -webkit-font-smoothing:antialiased;
+    }
+
+    a{color:inherit;text-decoration:none}
+    img{max-width:100%;display:block}
+
+    .wrap{max-width:1240px;margin:0 auto;padding:0 var(--gutter)}
+
+    /* Header */
+    header{
+      position:sticky;top:0;z-index:30;
+      background:rgba(255,255,255,.88);
+      backdrop-filter:blur(10px);
+      border-bottom:1px solid var(--line);
+    }
+    .head-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0}
+    .brand{display:flex;align-items:center;gap:12px;min-width:0}
+    .logo{
+      width:42px;height:42px;border-radius:14px;
+      background:var(--brand-soft);
+      border:1px solid rgba(220,38,38,.25);
+      display:flex;align-items:center;justify-content:center;
+      font-weight:950;color:var(--brand);
+      overflow:hidden;
+    }
+    .logo img{width:100%;height:100%;object-fit:cover}
+    .brand-meta{display:flex;flex-direction:column;min-width:0}
+    .brand-meta .name{font-size:15px;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .brand-meta .sub{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+    .head-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+    .btn{
+      appearance:none;border:none;cursor:pointer;
+      display:inline-flex;align-items:center;justify-content:center;gap:8px;
+      height:38px;padding:0 14px;border-radius:999px;
+      font-size:12px;font-weight:950;
+      transition:transform .12s ease, box-shadow .12s ease, background .12s ease;
+      user-select:none;
+    }
+    .btn:focus-visible{outline:none;box-shadow:0 0 0 4px rgba(220,38,38,.14)}
+    .btn-primary{background:linear-gradient(135deg,var(--brand-2),var(--brand));color:#fff;box-shadow:0 14px 30px rgba(220,38,38,.22)}
+    .btn-primary:hover{transform:translateY(-1px)}
+    .btn-ghost{background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-soft)}
+    .btn-danger{background:#fff;border:1px solid rgba(220,38,38,.28);color:var(--brand);box-shadow:var(--shadow-soft)}
+
+    .chip{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:8px 12px;border-radius:999px;
+      border:1px solid var(--line);
+      background:var(--surface);
+      font-size:12px;color:var(--muted);
+      box-shadow:var(--shadow-soft);
+    }
+
+    /* Layout */
+    .main{padding:var(--section) 0 64px}
+
+    .grid{
+      display:grid;
+      grid-template-columns: 280px 1fr;
+      gap:16px;
+      align-items:start;
+    }
+
+    /* Sidebar */
+    .sidebar{
+      background:var(--surface);
+      border:1px solid var(--line);
+      border-radius:var(--radius-lg);
+      box-shadow:var(--shadow-soft);
+      overflow:hidden;
+      position:sticky;
+      top:84px;
+    }
+    .side-top{padding:14px;border-bottom:1px solid var(--line)}
+    .side-top .hello{font-size:12px;color:var(--muted);margin-bottom:6px}
+    .side-top .dealer{font-weight:950;font-size:14px}
+    .side-top .id{margin-top:6px;font-size:12px;color:var(--muted)}
+
+    .nav{display:flex;flex-direction:column}
+    .nav button{
+      border:none;background:transparent;cursor:pointer;text-align:left;
+      padding:12px 14px;
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      border-bottom:1px solid rgba(229,231,235,.65);
+      font-weight:900;font-size:13px;color:var(--slate);
+      transition:background .12s ease;
+    }
+    .nav button:hover{background:rgba(220,38,38,.06)}
+    .nav button[aria-current="page"]{background:rgba(220,38,38,.10);color:var(--ink)}
+    .nav .hint{font-weight:800;color:var(--muted);font-size:11px}
+
+    /* Content */
+    .panel{
+      background:var(--surface);
+      border:1px solid var(--line);
+      border-radius:var(--radius-lg);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .panel-head{padding:16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+    .panel-head h1{margin:0;font-size:16px;font-weight:950}
+    .panel-head p{margin:6px 0 0;color:var(--muted);font-size:12px}
+
+    .panel-body{padding:16px}
+
+    /* KPI cards */
+    .kpis{display:grid;grid-template-columns:repeat(12,1fr);gap:12px;margin-bottom:12px}
+    .kpi{
+      grid-column:span 3;
+      border:1px solid var(--line);
+      border-radius:18px;
+      background:var(--surface-soft);
+      box-shadow:var(--shadow-soft);
+      padding:12px;
+      display:flex;flex-direction:column;gap:6px;
+      min-height:86px;
+    }
+    .kpi .t{font-size:11px;color:var(--muted)}
+    .kpi .v{font-size:20px;font-weight:950;letter-spacing:-.02em}
+    .kpi .s{font-size:11px;color:var(--muted-2)}
+
+    /* Charts */
+    .charts{display:grid;grid-template-columns:repeat(12,1fr);gap:12px;margin-top:12px}
+    .chart-card{
+      grid-column:span 6;
+      border:1px solid var(--line);
+      border-radius:18px;
+      background:var(--surface-soft);
+      box-shadow:var(--shadow-soft);
+      padding:12px;
+    }
+    .chart-card h3{margin:0 0 10px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+    canvas{width:100%;height:260px}
+
+    /* Table */
+    .table-tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-top:6px}
+    .search{
+      display:flex;align-items:center;gap:8px;
+      border:1px solid var(--line);
+      border-radius:999px;padding:8px 12px;
+      background:var(--surface);
+      box-shadow:var(--shadow-soft);
+      min-width:min(420px, 100%);
+    }
+    .search input{border:none;outline:none;background:transparent;font-size:13px;width:100%}
+
+    .seg{
+      display:inline-flex;align-items:center;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background:var(--surface);
+      overflow:hidden;
+      box-shadow:var(--shadow-soft);
+    }
+    .seg button{
+      border:none;background:transparent;cursor:pointer;
+      padding:9px 12px;font-size:12px;font-weight:950;color:var(--muted);
+    }
+    .seg button[aria-pressed="true"]{background:rgba(220,38,38,.10);color:var(--ink)}
+
+    .table-wrap{
+      margin-top:12px;
+      border:1px solid var(--line);
+      border-radius:18px;
+      overflow:auto;
+      background:var(--surface);
+    }
+    table{border-collapse:collapse;width:100%;min-width:980px;font-size:12px}
+    thead th{
+      position:sticky;top:0;z-index:1;
+      background:#f9fafb;
+      border-bottom:1px solid var(--line);
+      text-align:left;
+      padding:10px 10px;
+      color:var(--muted);
+      font-weight:950;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+      font-size:11px;
+    }
+    tbody td{padding:10px 10px;border-bottom:1px solid rgba(229,231,235,.7);vertical-align:middle}
+    tbody tr:hover{background:rgba(220,38,38,.04)}
+
+    .cell-main{display:flex;align-items:center;gap:10px}
+    .thumb{width:54px;height:38px;border-radius:10px;object-fit:cover;border:1px solid var(--line);background:#f3f4f6}
+    .veh{display:flex;flex-direction:column;gap:2px}
+    .veh .t{font-weight:950}
+    .veh .m{font-size:11px;color:var(--muted)}
+
+    .pill{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:6px 10px;border-radius:999px;
+      border:1px solid var(--line);
+      background:#fff;
+      font-weight:950;
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.05em;
+    }
+    .pill .d{width:8px;height:8px;border-radius:99px}
+    .pill.ok .d{background:var(--ok)}
+    .pill.warn .d{background:var(--warn)}
+    .pill.slate .d{background:#94a3b8}
+
+    .mini-btn{
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--ink);
+      border-radius:999px;
+      padding:7px 10px;
+      font-size:11px;
+      font-weight:950;
+      cursor:pointer;
+      box-shadow:var(--shadow-soft);
+      transition:transform .12s ease;
+    }
+    .mini-btn:hover{transform:translateY(-1px)}
+    .mini-btn.danger{border-color:rgba(220,38,38,.28);color:var(--brand)}
+
+    /* Drawer */
+    .drawer{
+      position:fixed;inset:0;z-index:70;display:none;
+      background:rgba(15,23,42,.35);
+      backdrop-filter: blur(8px);
+    }
+    .drawer[aria-hidden="false"]{display:block}
+    .drawer-panel{
+      position:absolute;top:0;right:0;height:100%;
+      width:min(520px, 100%);
+      background:var(--surface);
+      border-left:1px solid var(--line);
+      box-shadow:-24px 0 80px rgba(15,23,42,.18);
+      display:flex;flex-direction:column;
+    }
+    .drawer-head{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px}
+    .drawer-head .title{font-weight:950}
+    .drawer-body{padding:16px;overflow:auto}
+
+    label{font-size:12px;color:var(--muted);font-weight:900}
+    .field{
+      width:100%;
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:14px;
+      padding:10px 12px;
+      font-size:13px;
+      outline:none;
+      transition:border-color .12s ease, box-shadow .12s ease;
+    }
+    .field:focus{border-color:rgba(220,38,38,.45);box-shadow:0 0 0 4px rgba(220,38,38,.12)}
+
+    .form{display:grid;gap:10px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .help{font-size:11px;color:var(--muted-2);line-height:1.4}
+
+    .statusline{min-height:18px;font-size:12px;color:var(--muted);margin-top:6px}
+
+    /* Login */
+    .login{
+      min-height:calc(100vh - 64px);
+      display:grid;place-items:center;
+      padding:32px var(--gutter);
+    }
+    .login-card{
+      width:min(520px,100%);
+      background:var(--surface);
+      border:1px solid var(--line);
+      border-radius:var(--radius-lg);
+      box-shadow:var(--shadow);
+      padding:18px;
+    }
+    .login-card h1{margin:0 0 6px;font-size:18px;font-weight:950}
+    .login-card p{margin:0 0 14px;color:var(--muted);font-size:12px;line-height:1.5}
+
+    .foot{
+      margin-top:14px;
+      display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap
+    }
+
+    /* Responsive */
+    @media(max-width: 980px){
+      .grid{grid-template-columns:1fr}
+      .sidebar{position:relative;top:auto}
+      .kpi{grid-column:span 6}
+      .chart-card{grid-column:span 12}
+      canvas{height:220px}
+    }
+    @media(max-width: 520px){
+      .kpi{grid-column:span 12}
+      .search{min-width:100%}
+      table{min-width:860px}
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      .btn,.mini-btn{transition:none}
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="head-row">
+      <div class="brand">
+        <div class="logo" id="dealerLogo">D</div>
+        <div class="brand-meta">
+          <div class="name" id="hdrDealerName">Dealer Portal</div>
+          <div class="sub" id="hdrDealerSub">Inventory · Requests · Performance</div>
+        </div>
+      </div>
+
+      <div class="head-actions">
+        <span class="chip" id="sessionChip" style="display:none">Signed in</span>
+        <button class="btn btn-ghost" id="refreshBtn" type="button" style="display:none">Refresh</button>
+        <button class="btn btn-danger" id="logoutBtn" type="button" style="display:none">Logout</button>
+        <a class="btn btn-ghost" href="/storefront" title="Open storefront" rel="noreferrer">Storefront</a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- LOGIN -->
+<section class="login" id="loginSection">
+  <div class="login-card">
+    <h1>Dealer Login</h1>
+    <p>
+      Sign in to manage your inventory, review viewing requests, and track performance.
+      <strong>You can’t delete vehicles</strong> — you can archive them.
+    </p>
+
+    <div class="form">
+      <div>
+        <label for="dealerId">Dealer ID</label>
+        <input class="field" id="dealerId" placeholder="DEALER-0001" autocomplete="username" />
+        <div class="help">Use the Dealer ID provided by Pytch (letters/numbers/dash).</div>
+      </div>
+      <div>
+        <label for="passcode">Passcode</label>
+        <input class="field" id="passcode" placeholder="••••••••" type="password" autocomplete="current-password" />
+        <div class="help">This passcode grants editing rights for your inventory.</div>
+      </div>
+      <button class="btn btn-primary" id="loginBtn" type="button">Sign in</button>
+      <div class="statusline" id="loginStatus"></div>
+    </div>
+
+    <div class="foot">
+      <div class="help">Need access? Ask support for your Dealer ID and passcode.</div>
+      <div class="help">Built by Pytch LLC · © <span id="year"></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- APP -->
+<main class="main" id="appSection" style="display:none">
+  <div class="wrap">
+    <div class="grid">
+
+      <!-- Sidebar -->
+      <aside class="sidebar" aria-label="Dealer navigation">
+        <div class="side-top">
+          <div class="hello">Signed in as</div>
+          <div class="dealer" id="sideDealerName">—</div>
+          <div class="id">Dealer ID: <strong id="sideDealerId">—</strong></div>
+        </div>
+
+        <nav class="nav">
+          <button type="button" data-tab="dashboard" aria-current="page">
+            <span>Dashboard</span>
+            <span class="hint" id="navKpi">—</span>
+          </button>
+          <button type="button" data-tab="inventory">
+            <span>Inventory</span>
+            <span class="hint" id="navInv">—</span>
+          </button>
+          <button type="button" data-tab="requests">
+            <span>Requests</span>
+            <span class="hint" id="navReq">—</span>
+          </button>
+          <button type="button" data-tab="performance">
+            <span>Performance</span>
+            <span class="hint" id="navPerf">This month</span>
+          </button>
+          <button type="button" data-tab="settings">
+            <span>Settings</span>
+            <span class="hint">Branding</span>
+          </button>
+        </nav>
+      </aside>
+
+      <!-- Content -->
+      <section class="panel" aria-label="Dealer panel">
+
+        <!-- DASHBOARD -->
+        <div class="tab" id="tab-dashboard">
+          <div class="panel-head">
+            <div>
+              <h1>Operations Dashboard</h1>
+              <p>Today’s snapshot — inventory health, incoming requests, and what needs attention.</p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <div class="chip" id="monthChip">Month: <strong id="monthLabel" style="color:var(--ink)">—</strong></div>
+              <button class="btn btn-primary" id="newVehicleBtn" type="button">+ Add Vehicle</button>
+            </div>
+          </div>
+
+          <div class="panel-body">
+            <div class="kpis">
+              <div class="kpi"><div class="t">Available</div><div class="v" id="kpiAvailable">–</div><div class="s">Live inventory</div></div>
+              <div class="kpi"><div class="t">Pending</div><div class="v" id="kpiPending">–</div><div class="s">Awaiting action</div></div>
+              <div class="kpi"><div class="t">Sold</div><div class="v" id="kpiSold">–</div><div class="s">This month</div></div>
+              <div class="kpi"><div class="t">New Requests</div><div class="v" id="kpiNewReq">–</div><div class="s">This week</div></div>
+            </div>
+
+            <div class="charts">
+              <div class="chart-card">
+                <h3>Inventory Status</h3>
+                <canvas id="chartInventory"></canvas>
+              </div>
+              <div class="chart-card">
+                <h3>Requests Pipeline</h3>
+                <canvas id="chartRequests"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- INVENTORY -->
+        <div class="tab" id="tab-inventory" style="display:none">
+          <div class="panel-head">
+            <div>
+              <h1>Inventory Manager</h1>
+              <p>Add, update, or archive vehicles. Media links save to Airtable (Cloudinary recommended).</p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <button class="btn btn-primary" id="newVehicleBtn2" type="button">+ Add Vehicle</button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="table-tools">
+              <div class="search" role="search"><span style="opacity:.75">⌕</span><input id="invSearch" placeholder="Search title, make, model, VIN, id…" aria-label="Search inventory" /></div>
+              <div class="seg" role="group" aria-label="Status filter">
+                <button type="button" class="segBtn" data-status="all" aria-pressed="true">All</button>
+                <button type="button" class="segBtn" data-status="available" aria-pressed="false">Available</button>
+                <button type="button" class="segBtn" data-status="pending" aria-pressed="false">Pending</button>
+                <button type="button" class="segBtn" data-status="sold" aria-pressed="false">Sold</button>
+                <button type="button" class="segBtn" data-status="archived" aria-pressed="false">Archived</button>
+              </div>
+            </div>
+
+            <div class="table-wrap" aria-label="Inventory table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Vehicle</th>
+                    <th>Vehicle ID</th>
+                    <th>VIN</th>
+                    <th>Price</th>
+                    <th>Status</th>
+                    <th>Updated</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="invBody"></tbody>
+              </table>
+            </div>
+
+            <div class="help" style="margin-top:10px">
+              <strong>Rule:</strong> Vehicles are never deleted. Archive when needed — archived items stay visible to you.
+            </div>
+          </div>
+        </div>
+
+        <!-- REQUESTS -->
+        <div class="tab" id="tab-requests" style="display:none">
+          <div class="panel-head">
+            <div>
+              <h1>Viewing Requests</h1>
+              <p>Leads coming from the storefront. Update status as you follow up.</p>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="table-tools">
+              <div class="search" role="search"><span style="opacity:.75">⌕</span><input id="reqSearch" placeholder="Search name, phone, vehicleId…" aria-label="Search requests" /></div>
+              <div class="seg" role="group" aria-label="Request status filter">
+                <button type="button" class="reqSeg" data-rstatus="all" aria-pressed="true">All</button>
+                <button type="button" class="reqSeg" data-rstatus="new" aria-pressed="false">New</button>
+                <button type="button" class="reqSeg" data-rstatus="booked" aria-pressed="false">Booked</button>
+                <button type="button" class="reqSeg" data-rstatus="closed" aria-pressed="false">Closed</button>
+              </div>
+            </div>
+
+            <div class="table-wrap" aria-label="Requests table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Request</th>
+                    <th>Type</th>
+                    <th>Customer</th>
+                    <th>Vehicle</th>
+                    <th>Preferred</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="reqBody"></tbody>
+              </table>
+            </div>
+
+            <div class="help" style="margin-top:10px">
+              Tip: mark as <strong>Booked</strong> once a viewing time is confirmed.
+            </div>
+          </div>
+        </div>
+
+        <!-- PERFORMANCE -->
+        <div class="tab" id="tab-performance" style="display:none">
+          <div class="panel-head">
+            <div>
+              <h1>Performance</h1>
+              <p>High-level view of conversions and sales activity (based on Airtable status + timestamps).</p>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="kpis">
+              <div class="kpi"><div class="t">Requests (month)</div><div class="v" id="kpiReqMonth">–</div><div class="s">All types</div></div>
+              <div class="kpi"><div class="t">Booked (month)</div><div class="v" id="kpiBookedMonth">–</div><div class="s">Confirmed viewings</div></div>
+              <div class="kpi"><div class="t">Sold (month)</div><div class="v" id="kpiSoldMonth">–</div><div class="s">Vehicles marked sold</div></div>
+              <div class="kpi"><div class="t">Conversion</div><div class="v" id="kpiConv">–</div><div class="s">Booked / Requests</div></div>
+            </div>
+
+            <div class="charts">
+              <div class="chart-card" style="grid-column:span 12">
+                <h3>Daily Requests (This Month)</h3>
+                <canvas id="chartDaily"></canvas>
+              </div>
+            </div>
+
+            <div class="help" style="margin-top:10px">
+              Note: sales tracking becomes stronger if you add a dedicated <strong>Sales</strong> table later.
+            </div>
+          </div>
+        </div>
+
+        <!-- SETTINGS -->
+        <div class="tab" id="tab-settings" style="display:none">
+          <div class="panel-head">
+            <div>
+              <h1>Settings</h1>
+              <p>Dealer profile fields (read-only for now). Admin can update branding + WhatsApp.</p>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="kpis">
+              <div class="kpi" style="grid-column:span 6"><div class="t">Dealer Name</div><div class="v" id="setName">–</div><div class="s">Shown on storefront</div></div>
+              <div class="kpi" style="grid-column:span 6"><div class="t">WhatsApp</div><div class="v" id="setWhatsapp">–</div><div class="s">Used for chat requests</div></div>
+            </div>
+
+            <div class="help">
+              If you need changes to logo or contact details, message support.
+            </div>
+          </div>
+        </div>
+
+      </section>
+    </div>
+  </div>
+</main>
+
+<!-- VEHICLE DRAWER -->
+<div class="drawer" id="drawer" aria-hidden="true">
+  <div class="drawer-panel" role="dialog" aria-modal="true" aria-label="Vehicle editor">
+    <div class="drawer-head">
+      <div class="title" id="drawerTitle">Add Vehicle</div>
+      <button class="btn btn-ghost" id="drawerClose" type="button">Close</button>
+    </div>
+    <div class="drawer-body">
+      <form id="vehForm" class="form" novalidate>
+        <input type="hidden" id="airtableRecordId" value="" />
+
+        <div class="row">
+          <div>
+            <label for="vehicleId">Vehicle ID</label>
+            <input class="field" id="vehicleId" placeholder="VEH-00001" />
+            <div class="help">If blank, server can generate (recommended).</div>
+          </div>
+          <div>
+            <label for="status">Status</label>
+            <select class="field" id="status">
+              <option value="available">available</option>
+              <option value="pending">pending</option>
+              <option value="sold">sold</option>
+              <option value="archived">archived</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label for="title">Title</label>
+          <input class="field" id="title" placeholder="2016 Toyota Corolla" required />
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="make">Make</label>
+            <input class="field" id="make" placeholder="Toyota" />
+          </div>
+          <div>
+            <label for="model">Model</label>
+            <input class="field" id="model" placeholder="Corolla" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="year">Year</label>
+            <input class="field" id="year" type="number" placeholder="2016" />
+          </div>
+          <div>
+            <label for="price">Price (JMD)</label>
+            <input class="field" id="price" type="number" placeholder="3500000" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="vin">VIN</label>
+            <input class="field" id="vin" placeholder="" />
+          </div>
+          <div>
+            <label for="mileage">Mileage (km)</label>
+            <input class="field" id="mileage" type="number" placeholder="" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="transmission">Transmission</label>
+            <select class="field" id="transmission">
+              <option value="">—</option>
+              <option value="Automatic">Automatic</option>
+              <option value="Manual">Manual</option>
+              <option value="CVT">CVT</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label for="fuel">Fuel Type</label>
+            <select class="field" id="fuel">
+              <option value="">—</option>
+              <option value="Gas">Gas</option>
+              <option value="Diesel">Diesel</option>
+              <option value="Hybrid">Hybrid</option>
+              <option value="Electric">Electric</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="body">Body Type</label>
+            <input class="field" id="body" placeholder="SUV" />
+          </div>
+          <div>
+            <label for="color">Color</label>
+            <input class="field" id="color" placeholder="Black" />
+          </div>
+        </div>
+
+        <div>
+          <label for="notes">Notes / Description</label>
+          <textarea class="field" id="notes" rows="5" placeholder="Condition notes, known issues, features…"></textarea>
+        </div>
+
+        <div>
+          <label for="cloudinaryImageUrls">Cloudinary Image URLs (optional)</label>
+          <textarea class="field" id="cloudinaryImageUrls" rows="4" placeholder='Paste URLs (JSON array, comma, or newline).'></textarea>
+          <div class="help">Your storefront will prioritize Airtable attachments first, then Cloudinary URLs.</div>
+        </div>
+
+        <div>
+          <label for="cloudinaryVideoUrl">Cloudinary Video URL (optional)</label>
+          <input class="field" id="cloudinaryVideoUrl" placeholder="https://…" />
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="imageFiles">Upload Images (max 5)</label>
+            <input class="field" id="imageFiles" type="file" accept="image/*" multiple />
+          </div>
+          <div>
+            <label for="videoFiles">Upload Videos (max 3)</label>
+            <input class="field" id="videoFiles" type="file" accept="video/*" multiple />
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
+          <button class="btn btn-ghost" id="uploadMediaBtn" type="button">Upload Media</button>
+          <div class="statusline" id="uploadStatus"></div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="availability">Availability (storefront)</label>
+            <select class="field" id="availability">
+              <option value="true">true (show on storefront)</option>
+              <option value="false">false (hide)</option>
+            </select>
+          </div>
+          <div>
+            <label for="archived">Archived flag</label>
+            <select class="field" id="archived">
+              <option value="false">false</option>
+              <option value="true">true</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
+          <button class="btn btn-primary" id="saveVehicleBtn" type="submit">Save Vehicle</button>
+          <button class="btn btn-danger" id="archiveVehicleBtn" type="button" style="display:none">Archive Vehicle</button>
+        </div>
+
+        <div class="statusline" id="vehStatus"></div>
+        <div class="help">No deletes. Archive instead. Changes sync to Airtable instantly.</div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  /**
+   * Dealer Portal Frontend
+   * - Uses server-side Airtable access via /api/dealer
+   * - Stores a short-lived token in localStorage (best-effort).
+   *
+   * Required server endpoints (expected):
+   *  POST /api/dealer/login            { dealerId, passcode } -> { token, dealer }
+   *  GET  /api/dealer/me               -> { dealer }
+   *  GET  /api/dealer/vehicles         -> { vehicles }
+   *  POST /api/dealer/vehicles         -> { vehicle }   (create/update)
+   *  POST /api/dealer/vehicles/:id/archive -> { ok:true }
+   *  GET  /api/dealer/requests         -> { requests }
+   *  POST /api/dealer/requests/:id/status -> { request }
+   *  GET  /api/dealer/summary?month=YYYY-MM -> { kpis, dailyRequests }
+   *
+   * If any endpoint differs, update URLs in API section.
+   */
+
+  const $ = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+
+  const yearEl = $('#year');
+  yearEl.textContent = new Date().getFullYear();
+
+  // Sections
+  const loginSection = $('#loginSection');
+  const appSection = $('#appSection');
+
+  // Header controls
+  const sessionChip = $('#sessionChip');
+  const refreshBtn = $('#refreshBtn');
+  const logoutBtn = $('#logoutBtn');
+
+  // Login
+  const dealerIdEl = $('#dealerId');
+  const passcodeEl = $('#passcode');
+  const loginBtn = $('#loginBtn');
+  const loginStatus = $('#loginStatus');
+
+  // Sidebar
+  const sideDealerName = $('#sideDealerName');
+  const sideDealerId = $('#sideDealerId');
+  const hdrDealerName = $('#hdrDealerName');
+  const hdrDealerSub  = $('#hdrDealerSub');
+  const dealerLogoBox = $('#dealerLogo');
+
+  // KPIs
+  const kpiAvailable = $('#kpiAvailable');
+  const kpiPending   = $('#kpiPending');
+  const kpiSold      = $('#kpiSold');
+  const kpiNewReq    = $('#kpiNewReq');
+
+  // Performance KPIs
+  const kpiReqMonth = $('#kpiReqMonth');
+  const kpiBookedMonth = $('#kpiBookedMonth');
+  const kpiSoldMonth = $('#kpiSoldMonth');
+  const kpiConv = $('#kpiConv');
+
+  // Nav hints
+  const navKpi = $('#navKpi');
+  const navInv = $('#navInv');
+  const navReq = $('#navReq');
+
+  // Inventory table
+  const invBody = $('#invBody');
+  const invSearch = $('#invSearch');
+
+  // Requests table
+  const reqBody = $('#reqBody');
+  const reqSearch = $('#reqSearch');
+
+  // Drawer
+  const drawer = $('#drawer');
+  const drawerClose = $('#drawerClose');
+  const drawerTitle = $('#drawerTitle');
+  const vehForm = $('#vehForm');
+  const vehStatus = $('#vehStatus');
+  const archiveVehicleBtn = $('#archiveVehicleBtn');
+  const uploadStatus = $('#uploadStatus');
+  const uploadMediaBtn = $('#uploadMediaBtn');
+  const imageFiles = $('#imageFiles');
+  const videoFiles = $('#videoFiles');
+
+  // Add buttons
+  const newVehicleBtn = $('#newVehicleBtn');
+  const newVehicleBtn2 = $('#newVehicleBtn2');
+
+  // Settings
+  const setName = $('#setName');
+  const setWhatsapp = $('#setWhatsapp');
+
+  // Month
+  const monthLabel = $('#monthLabel');
+
+  // Charts
+  let chartInventory = null;
+  let chartRequests = null;
+  let chartDaily = null;
+
+  // State
+  const STATE = {
+    token: '',
+    dealer: null,
+    vehicles: [],
+    requests: [],
+    invFilter: { q:'', status:'all' },
+    reqFilter: { q:'', status:'all' },
+    month: '',
+    dailyRequests: [],
+  };
+
+  function cleanStr(v, max=1200){
+    if(v === null || v === undefined) return '';
+    const s = String(v).trim();
+    return s.length > max ? s.slice(0,max) : s;
+  }
+
+  function setTab(key){
+    $$('.nav button').forEach(btn => {
+      const is = btn.getAttribute('data-tab') === key;
+      btn.setAttribute('aria-current', is ? 'page' : 'false');
+    });
+    $$('.tab').forEach(t => t.style.display = 'none');
+    $('#tab-' + key).style.display = 'block';
+  }
+
+  function setDrawer(open){
+    drawer.setAttribute('aria-hidden', open ? 'false' : 'true');
+    if(open){
+      setTimeout(() => { $('#title').focus?.(); }, 0);
+    }
+  }
+
+  function moneyJMD(n){
+    const x = Number(n || 0);
+    if(!Number.isFinite(x) || x <= 0) return '—';
+    return 'J$ ' + x.toLocaleString();
+  }
+
+  function pickThumb(v){
+    const main = v?.['Main Photo'];
+    if(Array.isArray(main) && main[0]?.url) return main[0].url;
+    const gallery = v?.['Gallery Photos'];
+    if(Array.isArray(gallery) && gallery[0]?.url) return gallery[0].url;
+    const images = v?.images;
+    if(Array.isArray(images) && images[0]?.url) return images[0].url;
+
+    // Cloudinary URLs field (may be JSON/string)
+    const raw = v?.cloudinaryImageUrls;
+    if(raw){
+      try{
+        const parsed = JSON.parse(raw);
+        if(Array.isArray(parsed) && parsed[0]) return parsed[0];
+      }catch(_){
+        const first = String(raw).split(/\n|,/).map(x=>x.trim()).filter(Boolean)[0];
+        if(first) return first;
+      }
+    }
+    return '';
+  }
+
+  function statusPill(s){
+    const x = String(s || '').toLowerCase();
+    if(x === 'available') return '<span class="pill ok"><span class="d"></span>available</span>';
+    if(x === 'pending') return '<span class="pill warn"><span class="d"></span>pending</span>';
+    if(x === 'sold') return '<span class="pill slate"><span class="d"></span>sold</span>';
+    if(x === 'archived') return '<span class="pill slate"><span class="d"></span>archived</span>';
+    return '<span class="pill slate"><span class="d"></span>' + escapeHtml(s || '—') + '</span>';
+  }
+
+  function escapeHtml(str){
+    return String(str || '')
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;')
+      .replace(/'/g,'&#39;');
+  }
+
+  function monthKey(date = new Date()){
+    const y = date.getFullYear();
+    const m = String(date.getMonth()+1).padStart(2,'0');
+    return `${y}-${m}`;
+  }
+
+  /** ---------------------------
+   * API
+   * --------------------------*/
+  function authHeaders(){
+    const h = { 'Content-Type':'application/json' };
+    if(STATE.token) h['Authorization'] = 'Bearer ' + STATE.token;
+    return h;
+  }
+
+  async function apiGet(url){
+    const res = await fetch(url, { headers: authHeaders(), credentials:'include' });
+    if(!res.ok){
+      const t = await res.text().catch(()=> '');
+      throw new Error(`Request failed (${res.status}) ${t}`);
+    }
+    return res.json();
+  }
+
+  async function apiPost(url, payload){
+    const res = await fetch(url, {
+      method:'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(payload || {}),
+      credentials:'include'
+    });
+    if(!res.ok){
+      const t = await res.text().catch(()=> '');
+      throw new Error(`Request failed (${res.status}) ${t}`);
+    }
+    return res.json();
+  }
+
+  /** ---------------------------
+   * Render
+   * --------------------------*/
+  function applyBranding(){
+    const d = STATE.dealer;
+    const name = d?.name || d?.['Dealer Name'] || 'Dealer Portal';
+    const id = d?.dealerId || d?.['Dealer ID'] || '—';
+
+    sideDealerName.textContent = name;
+    sideDealerId.textContent = id;
+    hdrDealerName.textContent = name;
+    hdrDealerSub.textContent = 'Inventory · Requests · Performance';
+
+    // Logo: allow logoUrl string or Airtable attachment field "Logo"
+    const logoUrl = d?.logoUrl || (() => {
+      const logo = d?.Logo;
+      if(Array.isArray(logo) && logo[0]?.url) return logo[0].url;
+      return '';
+    })();
+
+    if(logoUrl){
+      dealerLogoBox.innerHTML = `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(name)} logo" />`;
+    }else{
+      dealerLogoBox.textContent = 'D';
+    }
+
+    setName.textContent = name;
+    setWhatsapp.textContent = d?.whatsapp ? d.whatsapp : '—';
+  }
+
+  function renderInventory(){
+    const q = STATE.invFilter.q;
+    const status = STATE.invFilter.status;
+
+    const list = STATE.vehicles.filter(v => {
+      const blob = [v.title, v.Make, v.Model, v.VIN, v.vehicleId, v['Vehicle ID']].filter(Boolean).join(' ').toLowerCase();
+      if(q && !blob.includes(q)) return false;
+      const s = String(v.status || v.Status || '').toLowerCase();
+      if(status !== 'all' && s !== status) return false;
+      return true;
+    });
+
+    invBody.innerHTML = list.map(v => {
+      const thumb = pickThumb(v);
+      const title = escapeHtml(v.title || `${v.Year || ''} ${v.Make || ''} ${v.Model || ''}`.trim() || 'Vehicle');
+      const sub = escapeHtml([v.Year, v.Make, v.Model].filter(Boolean).join(' • '));
+      const vid = escapeHtml(v.vehicleId || v['Vehicle ID'] || '');
+      const vin = escapeHtml(v.VIN || '');
+      const price = moneyJMD(v.Price || v.price);
+      const st = statusPill(v.status || v.Status);
+      const updated = escapeHtml((v.updatedAt || v['updatedAt'] || v['Updated At'] || '').toString().slice(0,10));
+
+      const recordId = escapeHtml(v.airtableRecordId || v._recordId || '');
+
+      return `
+        <tr>
+          <td>
+            <div class="cell-main">
+              ${thumb ? `<img class="thumb" src="${escapeHtml(thumb)}" alt="" />` : `<div class="thumb" aria-hidden="true"></div>`}
+              <div class="veh">
+                <div class="t">${title}</div>
+                <div class="m">${sub}</div>
+              </div>
+            </div>
+          </td>
+          <td><strong>${vid || '—'}</strong></td>
+          <td>${vin || '—'}</td>
+          <td>${escapeHtml(price)}</td>
+          <td>${st}</td>
+          <td>${updated || '—'}</td>
+          <td>
+            <button class="mini-btn" data-act="edit" data-id="${vid}" data-rid="${recordId}">Edit</button>
+            <button class="mini-btn danger" data-act="archive" data-id="${vid}">Archive</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    // Bind actions
+    $$('[data-act="edit"]').forEach(b => {
+      b.addEventListener('click', () => {
+        const vid = b.getAttribute('data-id');
+        const v = STATE.vehicles.find(x => String(x.vehicleId || x['Vehicle ID']) === String(vid));
+        if(v) openVehicleEditor(v);
+      });
+    });
+    $$('[data-act="archive"]').forEach(b => {
+      b.addEventListener('click', async () => {
+        const vid = b.getAttribute('data-id');
+        if(!vid) return;
+        if(!confirm('Archive this vehicle? It will be hidden from the storefront.')) return;
+        try{
+          await apiPost(`/api/dealer/vehicles/${encodeURIComponent(vid)}/archive`, {});
+          await refreshAll();
+        }catch(err){
+          alert(err.message || 'Archive failed');
+        }
+      });
+    });
+
+    // Nav hints
+    navInv.textContent = `${STATE.vehicles.length} total`;
+  }
+
+  function renderRequests(){
+    const q = STATE.reqFilter.q;
+    const rstatus = STATE.reqFilter.status;
+
+    const list = STATE.requests.filter(r => {
+      const blob = [r.requestId, r.name, r.phone, r.vehicleId, r.type].filter(Boolean).join(' ').toLowerCase();
+      if(q && !blob.includes(q)) return false;
+      const s = String(r.status || '').toLowerCase();
+      if(rstatus !== 'all' && s !== rstatus) return false;
+      return true;
+    });
+
+    reqBody.innerHTML = list.map(r => {
+      const rid = escapeHtml(r.requestId || '');
+      const type = escapeHtml(r.type || '');
+      const name = escapeHtml(r.name || '');
+      const phone = escapeHtml(r.phone || '');
+      const email = escapeHtml(r.email || '');
+      const vehicleId = escapeHtml(r.vehicleId || '—');
+      const preferred = escapeHtml([r.preferredDate, r.preferredTime].filter(Boolean).join(' '));
+      const status = String(r.status || '').toLowerCase();
+
+      const statusOptions = ['new','booked','closed']
+        .map(s => `<option value="${s}" ${s===status?'selected':''}>${s}</option>`)
+        .join('');
+
+      return `
+        <tr>
+          <td><strong>${rid}</strong></td>
+          <td>${type}</td>
+          <td>
+            <div class="veh">
+              <div class="t">${name}</div>
+              <div class="m">${phone}${email ? ` • ${email}` : ''}</div>
+            </div>
+          </td>
+          <td>${vehicleId}</td>
+          <td>${preferred || '—'}</td>
+          <td>
+            <select class="field" style="padding:8px 10px;border-radius:999px" data-act="rstatus" data-id="${rid}">
+              ${statusOptions}
+            </select>
+          </td>
+          <td>
+            <button class="mini-btn" data-act="call" data-phone="${phone}">Call</button>
+            <button class="mini-btn" data-act="wa" data-phone="${phone}" data-vid="${vehicleId}">WhatsApp</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    // Update status
+    $$('[data-act="rstatus"]').forEach(sel => {
+      sel.addEventListener('change', async () => {
+        const id = sel.getAttribute('data-id');
+        const status = sel.value;
+        try{
+          await apiPost(`/api/dealer/requests/${encodeURIComponent(id)}/status`, { status });
+          // update local
+          const r = STATE.requests.find(x => x.requestId === id);
+          if(r) r.status = status;
+          hydrateDash();
+        }catch(err){
+          alert(err.message || 'Update failed');
+        }
+      });
+    });
+
+    // Call / WhatsApp helpers
+    $$('[data-act="call"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const p = btn.getAttribute('data-phone') || '';
+        if(p) window.location.href = `tel:${p}`;
+      });
+    });
+    $$('[data-act="wa"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const p = (btn.getAttribute('data-phone') || '').replace(/[^\d]/g,'');
+        const vid = btn.getAttribute('data-vid') || '';
+        const dealerName = STATE.dealer?.name || 'Dealer';
+        const msg = `Hi ${dealerName}, following up on your request${vid ? ` for ${vid}` : ''}.`;
+        if(p) window.open(`https://wa.me/${p}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
+      });
+    });
+
+    navReq.textContent = `${STATE.requests.length} total`;
+  }
+
+  /** ---------------------------
+   * Dashboard aggregation
+   * --------------------------*/
+  function hydrateDash(){
+    const vehicles = STATE.vehicles;
+    const requests = STATE.requests;
+
+    const count = (pred) => vehicles.filter(pred).length;
+    const available = count(v => String(v.status||'').toLowerCase()==='available' && v.archived !== true);
+    const pending   = count(v => String(v.status||'').toLowerCase()==='pending' && v.archived !== true);
+
+    // Sold this month (best-effort: updatedAt date inside month)
+    const m = STATE.month;
+    const soldThisMonth = vehicles.filter(v => {
+      if(String(v.status||'').toLowerCase() !== 'sold') return false;
+      const d = String(v.updatedAt || v['updatedAt'] || '').slice(0,7);
+      return d ? d === m : false;
+    }).length;
+
+    // New requests this week
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const newReqWeek = requests.filter(r => {
+      const dt = new Date(r.createdAt || r['createdAt'] || 0);
+      return dt instanceof Date && !isNaN(dt) && dt >= weekAgo;
+    }).length;
+
+    kpiAvailable.textContent = String(available);
+    kpiPending.textContent = String(pending);
+    kpiSold.textContent = String(soldThisMonth);
+    kpiNewReq.textContent = String(newReqWeek);
+
+    navKpi.textContent = `${available} live`;
+
+    // Performance KPI
+    const reqMonth = requests.filter(r => String(r.createdAt||'').slice(0,7) === m).length;
+    const bookedMonth = requests.filter(r => String(r.createdAt||'').slice(0,7) === m && String(r.status||'').toLowerCase()==='booked').length;
+
+    kpiReqMonth.textContent = String(reqMonth);
+    kpiBookedMonth.textContent = String(bookedMonth);
+    kpiSoldMonth.textContent = String(soldThisMonth);
+
+    const conv = reqMonth ? Math.round((bookedMonth/reqMonth)*100) : 0;
+    kpiConv.textContent = reqMonth ? `${conv}%` : '—';
+
+    // Charts
+    drawCharts({ available, pending, soldThisMonth, reqMonth, bookedMonth });
+  }
+
+  function drawCharts(meta){
+    // Inventory status chart
+    const statusCounts = {
+      available: STATE.vehicles.filter(v => String(v.status||'').toLowerCase()==='available' && v.archived !== true).length,
+      pending: STATE.vehicles.filter(v => String(v.status||'').toLowerCase()==='pending' && v.archived !== true).length,
+      sold: STATE.vehicles.filter(v => String(v.status||'').toLowerCase()==='sold' && v.archived !== true).length,
+      archived: STATE.vehicles.filter(v => (v.archived === true) || String(v.status||'').toLowerCase()==='archived').length,
+    };
+
+    const invCtx = $('#chartInventory');
+    if(chartInventory) chartInventory.destroy();
+    chartInventory = new Chart(invCtx, {
+      type:'doughnut',
+      data:{
+        labels:['available','pending','sold','archived'],
+        datasets:[{ data:[statusCounts.available, statusCounts.pending, statusCounts.sold, statusCounts.archived] }]
+      },
+      options:{
+        responsive:true,
+        plugins:{ legend:{ position:'bottom' } },
+        cutout:'62%'
+      }
+    });
+
+    // Requests pipeline
+    const reqCounts = {
+      new: STATE.requests.filter(r => String(r.status||'').toLowerCase()==='new').length,
+      booked: STATE.requests.filter(r => String(r.status||'').toLowerCase()==='booked').length,
+      closed: STATE.requests.filter(r => String(r.status||'').toLowerCase()==='closed').length,
+    };
+
+    const reqCtx = $('#chartRequests');
+    if(chartRequests) chartRequests.destroy();
+    chartRequests = new Chart(reqCtx, {
+      type:'bar',
+      data:{
+        labels:['new','booked','closed'],
+        datasets:[{ label:'requests', data:[reqCounts.new, reqCounts.booked, reqCounts.closed] }]
+      },
+      options:{
+        responsive:true,
+        plugins:{ legend:{ display:false } },
+        scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } }
+      }
+    });
+
+    // Daily requests (this month)
+    const daily = buildDailySeries(STATE.month, STATE.requests);
+    const dailyCtx = $('#chartDaily');
+    if(chartDaily) chartDaily.destroy();
+    chartDaily = new Chart(dailyCtx, {
+      type:'line',
+      data:{
+        labels: daily.labels,
+        datasets:[{ label:'requests', data: daily.values, tension:.32, fill:false }]
+      },
+      options:{
+        responsive:true,
+        plugins:{ legend:{ display:false } },
+        scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } }
+      }
+    });
+  }
+
+  function buildDailySeries(month, requests){
+    // month: YYYY-MM
+    const [y,m] = month.split('-').map(Number);
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const counts = Array(daysInMonth).fill(0);
+
+    requests.forEach(r => {
+      const dt = new Date(r.createdAt || r['createdAt'] || 0);
+      if(isNaN(dt)) return;
+      const key = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+      if(key !== month) return;
+      const d = dt.getDate();
+      if(d>=1 && d<=daysInMonth) counts[d-1] += 1;
+    });
+
+    return {
+      labels: counts.map((_,i) => String(i+1)),
+      values: counts
+    };
+  }
+
+  /** ---------------------------
+   * Vehicle editor
+   * --------------------------*/
+  function resetVehicleForm(){
+    vehForm.reset();
+    $('#airtableRecordId').value = '';
+    vehStatus.textContent = '';
+    archiveVehicleBtn.style.display = 'none';
+    drawerTitle.textContent = 'Add Vehicle';
+
+    // defaults
+    $('#availability').value = 'true';
+    $('#archived').value = 'false';
+    $('#status').value = 'available';
+  }
+
+  function openVehicleEditor(v=null){
+    resetVehicleForm();
+
+    if(v){
+      drawerTitle.textContent = 'Edit Vehicle';
+      $('#airtableRecordId').value = v.airtableRecordId || '';
+      $('#vehicleId').value = v.vehicleId || v['Vehicle ID'] || '';
+      $('#status').value = String(v.status || v.Status || 'available').toLowerCase();
+      $('#title').value = v.title || '';
+      $('#make').value = v.Make || v.make || '';
+      $('#model').value = v.Model || v.model || '';
+      $('#year').value = v.Year || v.year || '';
+      $('#price').value = v.Price || v.price || '';
+      $('#vin').value = v.VIN || '';
+      $('#mileage').value = v.Mileage || '';
+      $('#transmission').value = v.Transmission || '';
+      $('#fuel').value = v['Fuel Type'] || '';
+      $('#body').value = v['Body Type'] || '';
+      $('#color').value = v.Color || '';
+      $('#notes').value = v['notes / description'] || v.Description || v.notes || '';
+      $('#cloudinaryImageUrls').value = v.cloudinaryImageUrls || '';
+      $('#cloudinaryVideoUrl').value = v.cloudinaryVideoUrl || '';
+      $('#availability').value = String(v.Availability === true ? 'true' : 'false');
+      $('#archived').value = String(v.archived === true ? 'true' : 'false');
+
+      archiveVehicleBtn.style.display = 'inline-flex';
+      archiveVehicleBtn.onclick = async () => {
+        const vid = $('#vehicleId').value.trim();
+        if(!vid) return;
+        if(!confirm('Archive this vehicle?')) return;
+        try{
+          await apiPost(`/api/dealer/vehicles/${encodeURIComponent(vid)}/archive`, {});
+          setDrawer(false);
+          await refreshAll();
+        }catch(err){
+          vehStatus.textContent = err.message || 'Archive failed';
+        }
+      };
+    }
+
+    setDrawer(true);
+  }
+
+  function buildVehiclePayload(){
+    // Map UI -> Airtable fields expected by server
+    return {
+      airtableRecordId: cleanStr($('#airtableRecordId').value, 80) || undefined,
+      vehicleId: cleanStr($('#vehicleId').value, 60) || undefined,
+      status: cleanStr($('#status').value, 20),
+      title: cleanStr($('#title').value, 120),
+      Make: cleanStr($('#make').value, 80),
+      Model: cleanStr($('#model').value, 80),
+      Year: Number($('#year').value || 0) || undefined,
+      Price: Number($('#price').value || 0) || undefined,
+      VIN: cleanStr($('#vin').value, 60),
+      Mileage: Number($('#mileage').value || 0) || undefined,
+      Transmission: cleanStr($('#transmission').value, 40),
+      'Fuel Type': cleanStr($('#fuel').value, 40),
+      'Body Type': cleanStr($('#body').value, 40),
+      Color: cleanStr($('#color').value, 40),
+      'notes / description': cleanStr($('#notes').value, 2000),
+      cloudinaryImageUrls: cleanStr($('#cloudinaryImageUrls').value, 5000),
+      cloudinaryVideoUrl: cleanStr($('#cloudinaryVideoUrl').value, 2000),
+      Availability: $('#availability').value === 'true',
+      archived: $('#archived').value === 'true',
+    };
+  }
+
+  function parseUrlList(raw){
+    if(!raw) return [];
+    try{
+      if(raw.trim().startsWith("[")){
+        const parsed = JSON.parse(raw);
+        if(Array.isArray(parsed)) return parsed.map(String);
+      }
+    }catch(_err){}
+    return raw
+      .replaceAll(",", " ")
+      .replaceAll("\n", " ")
+      .split(" ")
+      .map(s => s.trim())
+      .filter(Boolean);
+  }
+
+  async function signCloudinaryUpload({ type, vehicleId }){
+    return apiPost("/api/dealer/cloudinary/sign", { type, vehicleId });
+  }
+
+  async function uploadToCloudinary({ file, type, vehicleId }){
+    const signed = await signCloudinaryUpload({ type, vehicleId });
+    if(!signed?.ok) throw new Error(signed?.error || "Cloudinary signing failed");
+
+    const endpoint = `https://api.cloudinary.com/v1_1/${signed.cloudName}/${signed.resourceType}/upload`;
+    const form = new FormData();
+    form.append("file", file);
+    form.append("api_key", signed.apiKey);
+    form.append("timestamp", signed.timestamp);
+    form.append("signature", signed.signature);
+    form.append("folder", signed.folder);
+
+    const res = await fetch(endpoint, { method: "POST", body: form });
+    const data = await res.json();
+    if(!res.ok || !data?.secure_url){
+      throw new Error(data?.error?.message || "Upload failed");
+    }
+    return data.secure_url;
+  }
+
+  async function handleMediaUpload(){
+    const vehicleId = cleanStr($('#vehicleId').value, 60);
+    if(!vehicleId){
+      uploadStatus.textContent = "Add a vehicle ID before uploading.";
+      return;
+    }
+
+    const images = Array.from(imageFiles.files || []);
+    const videos = Array.from(videoFiles.files || []);
+
+    if(images.length > 5){
+      uploadStatus.textContent = "Select up to 5 images.";
+      return;
+    }
+    if(videos.length > 3){
+      uploadStatus.textContent = "Select up to 3 videos.";
+      return;
+    }
+    if(!images.length && !videos.length){
+      uploadStatus.textContent = "Choose images or videos to upload.";
+      return;
+    }
+
+    uploadStatus.textContent = "Uploading…";
+    uploadMediaBtn.disabled = true;
+
+    try{
+      const imageUrls = [];
+      for(const file of images){
+        const url = await uploadToCloudinary({ file, type: "image", vehicleId });
+        imageUrls.push(url);
+      }
+
+      const videoUrls = [];
+      for(const file of videos){
+        const url = await uploadToCloudinary({ file, type: "video", vehicleId });
+        videoUrls.push(url);
+      }
+
+      if(imageUrls.length){
+        const existing = parseUrlList($('#cloudinaryImageUrls').value);
+        const next = [...existing, ...imageUrls];
+        $('#cloudinaryImageUrls').value = next.join("\n");
+      }
+
+      if(videoUrls.length){
+        const existingVideos = parseUrlList($('#cloudinaryVideoUrl').value);
+        const next = [...existingVideos, ...videoUrls];
+        $('#cloudinaryVideoUrl').value = next.join("\n");
+      }
+
+      uploadStatus.textContent = "Upload complete. Remember to save the vehicle.";
+      imageFiles.value = "";
+      videoFiles.value = "";
+    }catch(err){
+      uploadStatus.textContent = err.message || "Upload failed.";
+    }finally{
+      uploadMediaBtn.disabled = false;
+    }
+  }
+
+  /** ---------------------------
+   * Data flow
+   * --------------------------*/
+  async function refreshAll(){
+    // Dealer profile
+    const me = await apiGet('/api/dealer/me');
+    STATE.dealer = me.dealer;
+    applyBranding();
+
+    // Vehicles + requests + summary in parallel
+    const month = STATE.month;
+    const [veh, req, summary] = await Promise.all([
+      apiGet('/api/dealer/vehicles'),
+      apiGet('/api/dealer/requests'),
+      apiGet(`/api/dealer/summary?month=${encodeURIComponent(month)}`)
+    ]);
+
+    STATE.vehicles = veh.vehicles || [];
+    STATE.requests = req.requests || [];
+    STATE.dailyRequests = summary.dailyRequests || [];
+
+    // Update hints
+    navInv.textContent = `${STATE.vehicles.length} total`;
+    navReq.textContent = `${STATE.requests.length} total`;
+
+    // Render
+    renderInventory();
+    renderRequests();
+    hydrateDash();
+
+    // Month label
+    monthLabel.textContent = month;
+  }
+
+  function showApp(){
+    loginSection.style.display = 'none';
+    appSection.style.display = 'block';
+    sessionChip.style.display = 'inline-flex';
+    refreshBtn.style.display = 'inline-flex';
+    logoutBtn.style.display = 'inline-flex';
+  }
+
+  function showLogin(){
+    loginSection.style.display = 'grid';
+    appSection.style.display = 'none';
+    sessionChip.style.display = 'none';
+    refreshBtn.style.display = 'none';
+    logoutBtn.style.display = 'none';
+  }
+
+  /** ---------------------------
+   * Events
+   * --------------------------*/
+  $$('.nav button').forEach(btn => {
+    btn.addEventListener('click', () => setTab(btn.getAttribute('data-tab')));
+  });
+
+  uploadMediaBtn.addEventListener('click', handleMediaUpload);
+
+  // Inventory filters
+  invSearch.addEventListener('input', () => {
+    STATE.invFilter.q = cleanStr(invSearch.value, 80).toLowerCase();
+    renderInventory();
+  });
+  $$('.segBtn').forEach(b => {
+    b.addEventListener('click', () => {
+      const s = b.getAttribute('data-status');
+      STATE.invFilter.status = s;
+      $$('.segBtn').forEach(x => x.setAttribute('aria-pressed', x===b ? 'true' : 'false'));
+      renderInventory();
+    });
+  });
+
+  // Requests filters
+  reqSearch.addEventListener('input', () => {
+    STATE.reqFilter.q = cleanStr(reqSearch.value, 80).toLowerCase();
+    renderRequests();
+  });
+  $$('.reqSeg').forEach(b => {
+    b.addEventListener('click', () => {
+      const s = b.getAttribute('data-rstatus');
+      STATE.reqFilter.status = s;
+      $$('.reqSeg').forEach(x => x.setAttribute('aria-pressed', x===b ? 'true' : 'false'));
+      renderRequests();
+    });
+  });
+
+  // Drawer
+  drawerClose.addEventListener('click', () => setDrawer(false));
+  drawer.addEventListener('click', (e) => { if(e.target === drawer) setDrawer(false); });
+  window.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape' && drawer.getAttribute('aria-hidden') === 'false') setDrawer(false);
+  });
+
+  newVehicleBtn.addEventListener('click', () => openVehicleEditor(null));
+  newVehicleBtn2.addEventListener('click', () => openVehicleEditor(null));
+
+  vehForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try{
+      vehStatus.textContent = '';
+      const payload = buildVehiclePayload();
+      if(!payload.title){
+        vehStatus.textContent = 'Title is required.';
+        return;
+      }
+      await apiPost('/api/dealer/vehicles', payload);
+      vehStatus.textContent = 'Saved.';
+      setTimeout(() => setDrawer(false), 450);
+      await refreshAll();
+    }catch(err){
+      vehStatus.textContent = err.message || 'Save failed';
+    }
+  });
+
+  // Login
+  loginBtn.addEventListener('click', async () => {
+    try{
+      loginStatus.textContent = '';
+      loginBtn.disabled = true;
+      loginBtn.textContent = 'Signing in…';
+
+      const dealerId = cleanStr(dealerIdEl.value, 60);
+      const passcode = cleanStr(passcodeEl.value, 120);
+      if(!dealerId || !passcode){
+        loginStatus.textContent = 'Dealer ID and passcode are required.';
+        return;
+      }
+
+      const res = await apiPost('/api/dealer/login', { dealerId, passcode });
+      STATE.token = res.token || '';
+      localStorage.setItem('dealer.token', STATE.token);
+      localStorage.setItem('dealer.dealerId', dealerId);
+
+      STATE.dealer = res.dealer || null;
+      applyBranding();
+
+      showApp();
+      setTab('dashboard');
+      await refreshAll();
+
+    }catch(err){
+      loginStatus.textContent = err.message || 'Login failed.';
+    }finally{
+      loginBtn.disabled = false;
+      loginBtn.textContent = 'Sign in';
+    }
+  });
+
+  dealerIdEl.addEventListener('keydown', (e) => { if(e.key==='Enter') loginBtn.click(); });
+  passcodeEl.addEventListener('keydown', (e) => { if(e.key==='Enter') loginBtn.click(); });
+
+  refreshBtn.addEventListener('click', async () => {
+    try{
+      refreshBtn.disabled = true;
+      refreshBtn.textContent = 'Refreshing…';
+      await refreshAll();
+    }catch(err){
+      alert(err.message || 'Refresh failed');
+    }finally{
+      refreshBtn.disabled = false;
+      refreshBtn.textContent = 'Refresh';
+    }
+  });
+
+  logoutBtn.addEventListener('click', () => {
+    localStorage.removeItem('dealer.token');
+    localStorage.removeItem('dealer.dealerId');
+    STATE.token = '';
+    STATE.dealer = null;
+    STATE.vehicles = [];
+    STATE.requests = [];
+    showLogin();
+  });
+
+  /** ---------------------------
+   * Boot
+   * --------------------------*/
+  (function boot(){
+    STATE.month = monthKey(new Date());
+    monthLabel.textContent = STATE.month;
+
+    // restore token
+    const token = localStorage.getItem('dealer.token') || '';
+    if(token){
+      STATE.token = token;
+      showApp();
+      setTab('dashboard');
+      refreshAll().catch(() => {
+        // token invalid, fall back to login
+        STATE.token = '';
+        showLogin();
+      });
+    }else{
+      showLogin();
+    }
+  })();
+</script>
+</body>
+</html>
