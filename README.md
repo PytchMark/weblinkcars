@@ -87,10 +87,6 @@ Required:
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
-- `SUPABASE_PROJECT_ID` (optional reference only)
-- `ADMIN_EMAIL` (Netlify env for admin login)
-- `ADMIN_PASSWORD` (Netlify env for admin login)
-- `JWT_SECRET` (Netlify env for admin JWT signing)
 
 ---
 
@@ -206,79 +202,44 @@ alter table public.vehicles enable row level security;
 alter table public.viewing_requests enable row level security;
 alter table public.profiles enable row level security;
 
-do $$
-begin
-  if not exists (
-    select 1 from pg_policies where schemaname = 'public' and tablename = 'dealers' and policyname = 'Admins manage dealers'
-  ) then
-    create policy "Admins manage dealers" on public.dealers
-      for all
-      using (exists (select 1 from public.profiles where id = auth.uid() and role = 'admin'))
-      with check (exists (select 1 from public.profiles where id = auth.uid() and role = 'admin'));
-  end if;
+create policy "Admins manage dealers" on public.dealers
+  for all
+  using (exists (select 1 from public.profiles where id = auth.uid() and role = 'admin'))
+  with check (exists (select 1 from public.profiles where id = auth.uid() and role = 'admin'));
 
-  if not exists (
-    select 1 from pg_policies where schemaname = 'public' and tablename = 'profiles' and policyname = 'Dealers read own profile'
-  ) then
-    create policy "Dealers read own profile" on public.profiles
-      for select
-      using (auth.uid() = id);
-  end if;
+create policy "Dealers read own profile" on public.profiles
+  for select
+  using (auth.uid() = id);
 
-  if not exists (
-    select 1 from pg_policies where schemaname = 'public' and tablename = 'profiles' and policyname = 'Dealers update own profile'
-  ) then
-    create policy "Dealers update own profile" on public.profiles
-      for update
-      using (auth.uid() = id)
-      with check (auth.uid() = id);
-  end if;
+create policy "Dealers update own profile" on public.profiles
+  for update
+  using (auth.uid() = id)
+  with check (auth.uid() = id);
 
-  if not exists (
-    select 1 from pg_policies where schemaname = 'public' and tablename = 'profiles' and policyname = 'Admins manage profiles'
-  ) then
-    create policy "Admins manage profiles" on public.profiles
-      for all
-      using (exists (select 1 from public.profiles where id = auth.uid() and role = 'admin'))
-      with check (exists (select 1 from public.profiles where id = auth.uid() and role = 'admin'));
-  end if;
+create policy "Admins manage profiles" on public.profiles
+  for all
+  using (exists (select 1 from public.profiles where id = auth.uid() and role = 'admin'))
+  with check (exists (select 1 from public.profiles where id = auth.uid() and role = 'admin'));
 
-  if not exists (
-    select 1 from pg_policies where schemaname = 'public' and tablename = 'vehicles' and policyname = 'Dealers manage own vehicles'
-  ) then
-    create policy "Dealers manage own vehicles" on public.vehicles
-      for all
-      using (dealer_id = (select dealer_id from public.profiles where id = auth.uid()))
-      with check (dealer_id = (select dealer_id from public.profiles where id = auth.uid()));
-  end if;
+create policy "Dealers manage own vehicles" on public.vehicles
+  for all
+  using (dealer_id = (select dealer_id from public.profiles where id = auth.uid()))
+  with check (dealer_id = (select dealer_id from public.profiles where id = auth.uid()));
 
-  if not exists (
-    select 1 from pg_policies where schemaname = 'public' and tablename = 'vehicles' and policyname = 'Admins manage vehicles'
-  ) then
-    create policy "Admins manage vehicles" on public.vehicles
-      for all
-      using (exists (select 1 from public.profiles where id = auth.uid() and role = 'admin'))
-      with check (exists (select 1 from public.profiles where id = auth.uid() and role = 'admin'));
-  end if;
+create policy "Admins manage vehicles" on public.vehicles
+  for all
+  using (exists (select 1 from public.profiles where id = auth.uid() and role = 'admin'))
+  with check (exists (select 1 from public.profiles where id = auth.uid() and role = 'admin'));
 
-  if not exists (
-    select 1 from pg_policies where schemaname = 'public' and tablename = 'viewing_requests' and policyname = 'Dealers manage own requests'
-  ) then
-    create policy "Dealers manage own requests" on public.viewing_requests
-      for all
-      using (dealer_id = (select dealer_id from public.profiles where id = auth.uid()))
-      with check (dealer_id = (select dealer_id from public.profiles where id = auth.uid()));
-  end if;
+create policy "Dealers manage own requests" on public.viewing_requests
+  for all
+  using (dealer_id = (select dealer_id from public.profiles where id = auth.uid()))
+  with check (dealer_id = (select dealer_id from public.profiles where id = auth.uid()));
 
-  if not exists (
-    select 1 from pg_policies where schemaname = 'public' and tablename = 'viewing_requests' and policyname = 'Admins manage requests'
-  ) then
-    create policy "Admins manage requests" on public.viewing_requests
-      for all
-      using (exists (select 1 from public.profiles where id = auth.uid() and role = 'admin'))
-      with check (exists (select 1 from public.profiles where id = auth.uid() and role = 'admin'));
-  end if;
-end $$;
+create policy "Admins manage requests" on public.viewing_requests
+  for all
+  using (exists (select 1 from public.profiles where id = auth.uid() and role = 'admin'))
+  with check (exists (select 1 from public.profiles where id = auth.uid() and role = 'admin'));
 
 -- Storage bucket
 insert into storage.buckets (id, name, public)

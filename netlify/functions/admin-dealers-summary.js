@@ -1,7 +1,6 @@
 "use strict";
 
-const { createSupabaseServiceClient } = require("../../services/supabase");
-const { jsonResponse, requireAdmin } = require("./_helpers");
+const { jsonResponse, requireAuth } = require("./_helpers");
 
 function monthBounds(month) {
   if (!/^[0-9]{4}-[0-9]{2}$/.test(month)) return null;
@@ -17,7 +16,7 @@ exports.handler = async (event) => {
     return jsonResponse(405, { ok: false, error: "Method not allowed." });
   }
 
-  const auth = requireAdmin(event);
+  const auth = await requireAuth(event, ["admin"]);
   if (auth.error) return auth.error;
 
   const month = event.queryStringParameters?.month || new Date().toISOString().slice(0, 7);
@@ -26,7 +25,7 @@ exports.handler = async (event) => {
     return jsonResponse(400, { ok: false, error: "Invalid month format." });
   }
 
-  const supabase = createSupabaseServiceClient();
+  const supabase = auth.supabase;
 
   const [dealersRes, vehiclesRes, requestsRes] = await Promise.all([
     supabase.from("dealers").select("dealer_id, name, status"),
