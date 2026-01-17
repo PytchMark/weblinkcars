@@ -1,0 +1,113 @@
+[build]
+  publish = "apps"
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/"
+  to = "/storefront/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/storefront"
+  to = "/storefront/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/dealer"
+  to = "/dealer/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin"
+  to = "/admin/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/api/public/dealer/*/requests"
+  to = "/.netlify/functions/public-requests"
+  status = 200
+
+[[redirects]]
+  from = "/api/public/vehicles"
+  to = "/.netlify/functions/public-vehicles"
+  status = 200
+
+[[redirects]]
+  from = "/api/public/dealer/*"
+  to = "/.netlify/functions/public-dealer"
+  status = 200
+
+[[redirects]]
+  from = "/api/dealer/login"
+  to = "/.netlify/functions/dealer-login"
+  status = 200
+
+[[redirects]]
+  from = "/api/dealer/dashboard"
+  to = "/.netlify/functions/dealer-dashboard"
+  status = 200
+
+[[redirects]]
+  from = "/api/dealer/vehicles/*"
+  to = "/.netlify/functions/dealer-vehicles"
+  status = 200
+
+[[redirects]]
+  from = "/api/dealer/vehicles"
+  to = "/.netlify/functions/dealer-vehicles"
+  status = 200
+
+[[redirects]]
+  from = "/api/dealer/requests/*"
+  to = "/.netlify/functions/dealer-requests"
+  status = 200
+
+[[redirects]]
+  from = "/api/dealer/requests"
+  to = "/.netlify/functions/dealer-requests"
+  status = 200
+
+[[redirects]]
+  from = "/api/dealer/media/upload"
+  to = "/.netlify/functions/dealer-media"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/login"
+  to = "/.netlify/functions/admin-login"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/dealers/summary"
+  to = "/.netlify/functions/admin-dealers-summary"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/dealers/*"
+  to = "/.netlify/functions/admin-dealers"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/dealers"
+  to = "/.netlify/functions/admin-dealers"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/vehicles/*"
+  to = "/.netlify/functions/admin-vehicles"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/vehicles"
+  to = "/.netlify/functions/admin-vehicles"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/requests/*"
+  to = "/.netlify/functions/admin-requests"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/requests"
+  to = "/.netlify/functions/admin-requests"
+  status = 200
