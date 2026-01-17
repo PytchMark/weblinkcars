@@ -327,24 +327,6 @@
     #toastDot{width:8px;height:8px;border-radius:999px;background:var(--brand)}
 
     .splitBtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:12px}
-
-    .input-row{
-      display:flex;
-      align-items:center;
-      gap:8px;
-    }
-    .input-row .input{flex:1}
-    .toggle{
-      border-radius:999px;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.96);
-      padding:8px 12px;
-      font-size:12px;
-      font-weight:700;
-      cursor:pointer;
-      color:var(--muted);
-    }
-    .toggle:hover{color:var(--ink)}
   </style>
 </head>
 
@@ -363,7 +345,7 @@
         </div>
 
         <div class="hint">
-          Sign in with the admin email/password configured in Netlify environment variables.
+          Sign in with your Supabase admin email and password.
         </div>
 
         <div class="row two">
@@ -373,10 +355,7 @@
           </div>
           <div class="field">
             <div class="label"><span>Password</span><span>Required</span></div>
-            <div class="input-row">
-              <input id="password" class="input" type="password" placeholder="••••••••" autocomplete="current-password" />
-              <button class="toggle" id="togglePassword" type="button" aria-label="Show password">Show</button>
-            </div>
+            <input id="password" class="input" type="password" placeholder="••••••••" autocomplete="current-password" />
           </div>
         </div>
 
@@ -652,7 +631,6 @@
       btnLogin: el("btnLogin"),
       btnDemo: el("btnDemo"),
       loginStatus: el("loginStatus"),
-      togglePassword: el("togglePassword"),
 
       whoami: el("whoami"),
       apiDot: el("apiDot"),
@@ -738,15 +716,11 @@
       wire();
 
       // Restore token if present
-      const saved = localStorage.getItem("adminToken");
+      const saved = sessionStorage.getItem("ADMIN_TOKEN");
       if(saved){
         state.token = saved;
-        fetchAdminMe()
-          .then((me) => {
-            enterDashboard(me.email || "admin");
-            refresh().catch(()=>{});
-          })
-          .catch(() => { logout(); });
+        enterDashboard("admin");
+        refresh().catch(()=>{});
       } else {
         setApi("Login", "err");
       }
@@ -760,7 +734,6 @@
       ui.btnDemo.addEventListener("click", enterDemo);
       ui.email.addEventListener("keydown", (e)=>{ if(e.key==="Enter") doLogin(); });
       ui.password.addEventListener("keydown", (e)=>{ if(e.key==="Enter") doLogin(); });
-      ui.togglePassword.addEventListener("click", () => togglePassword());
 
       ui.btnLogout.addEventListener("click", logout);
       ui.btnRefresh.addEventListener("click", () => refresh().catch(()=>{}));
@@ -807,11 +780,10 @@
         }
 
         state.apiOnline = true;
-        state.token = data.token || "";
-        localStorage.setItem("adminToken", state.token);
+        state.token = data.session?.accessToken || "";
+        sessionStorage.setItem("ADMIN_TOKEN", state.token);
 
         setApi("Live", "on");
-        await fetchAdminMe();
         enterDashboard(email);
         toast("Signed in.", "success");
       }catch(e){
@@ -821,17 +793,10 @@
       }
     }
 
-    function togglePassword(){
-      const isPassword = ui.password.type === "password";
-      ui.password.type = isPassword ? "text" : "password";
-      ui.togglePassword.textContent = isPassword ? "Hide" : "Show";
-      ui.togglePassword.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
-    }
-
     function enterDemo(){
       state.apiOnline = false;
       state.token = "demo-token";
-      localStorage.setItem("adminToken", state.token);
+      sessionStorage.setItem("ADMIN_TOKEN", state.token);
       setApi("Demo", "err");
       enterDashboard("admin-demo");
       seedDemoIfNeeded();
@@ -846,7 +811,7 @@
     }
 
     function logout(){
-      localStorage.removeItem("adminToken");
+      sessionStorage.removeItem("ADMIN_TOKEN");
       state.token = null;
       state.apiOnline = true;
       state.dealers = [];
@@ -859,15 +824,6 @@
       ui.loginStatus.textContent = "";
       setApi("Login", "err");
       toast("Logged out.", "success");
-    }
-
-    async function fetchAdminMe(){
-      const res = await fetch("/api/admin/me", { headers: authHeaders() });
-      const data = await safeJson(res);
-      if(!res.ok || !data?.ok){
-        throw new Error(data?.error || "Admin session invalid.");
-      }
-      return data;
     }
 
     function authHeaders(){

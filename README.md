@@ -87,10 +87,6 @@ Required:
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
-- `SUPABASE_PROJECT_ID` (optional reference only)
-- `ADMIN_EMAIL` (Netlify env for admin login)
-- `ADMIN_PASSWORD` (Netlify env for admin login)
-- `JWT_SECRET` (Netlify env for admin JWT signing)
 
 ---
 
