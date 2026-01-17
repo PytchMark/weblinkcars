@@ -2,9 +2,8 @@
 
 A multi-dealer car inventory and viewing-request platform built with:
 
-- **Google Cloud Run** (Express API)
-- **Airtable** (single source of truth database)
-- **Cloudinary** (media hosting)
+- **Netlify** (static hosting + Functions API)
+- **Supabase** (Postgres + Auth + Storage)
 - **Static HTML apps** (storefront, dealer portal, admin)
 
 This system installs a **sales process**, not just a website.
@@ -14,7 +13,7 @@ This system installs a **sales process**, not just a website.
 ## Architecture Overview
 
 
-- Browsers **never** talk to Airtable directly
+- Browsers **never** talk to Supabase directly for protected data
 - All secrets live in environment variables
 - All dealer access is scoped by `Dealer ID`
 
@@ -25,8 +24,8 @@ This system installs a **sales process**, not just a website.
 ### `/apps/storefront`
 Public, read-only dealer storefront.
 
-- User enters a **Dealer ID** (or via URL param)
-- Displays live inventory from Airtable
+- User enters **1–3 dealer IDs** (comma-separated or via URL param)
+- Displays live inventory from Supabase
 - Allows customers to:
   - Open WhatsApp chat
   - Request live video viewing
@@ -39,9 +38,9 @@ No authentication required.
 ### `/apps/dealer`
 Dealer management portal.
 
-- Login with **Dealer ID + passcode**
+- Login with **Supabase Auth (email + password)**
 - Manage vehicles and media
-- Upload images/videos to Cloudinary
+- Upload images/videos to Supabase Storage
 - Update vehicle status:
   - Available
   - Pending
@@ -66,29 +65,14 @@ Internal admin dashboard.
 ## Repository Structure
 
 /
-├── server.js
-├── package.json
-├── .env.example
-├── .gitignore
-├── README.md
-│
+├── netlify.toml
+├── netlify/functions/
+├── services/supabase.js
+├── supabase/schema.sql
 ├── apps/
 │ ├── storefront/index.html
 │ ├── dealer/index.html
 │ └── admin/index.html
-│
-├── services/
-│ ├── airtable.js
-│ ├── auth.js
-│ ├── cloudinary.js
-│ └── analytics.js
-│
-└── public/assets/
-
-yaml
-Copy code
-
-
 ---
 
 ## Environment Variables
@@ -96,8 +80,13 @@ Copy code
 Create a local `.env` file (not committed) based on `.env.example`.
 
 In production:
-- Use **Cloud Run environment variables** or **Google Secret Manager**
+- Use **Netlify environment variables**
 - Never commit real secrets to GitHub
+
+Required:
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
 
 ---
 
@@ -105,10 +94,7 @@ In production:
 
 - **Dealer ID** is the partition key for all data
 - Vehicles are **never deleted**, only archived
-- Media is hosted on Cloudinary
-- Airtable stores:
-  - Cloudinary `secure_url`
-  - Optional Cloudinary metadata
+- Media is hosted on Supabase Storage
 - Dropdowns / single-select fields are enforced to keep data clean
 
 ---
@@ -116,17 +102,15 @@ In production:
 ## Status Values
 
 Vehicles:
-- `Available`
-- `Pending`
-- `Sold`
-- `Archived`
+- `available`
+- `pending`
+- `sold`
+- `archived`
 
 Requests:
 - `New`
-- `Contacted`
 - `Booked`
 - `Closed`
-- `No Show`
 
 ---
 
@@ -142,21 +126,6 @@ All apps must display:
 Install dependencies:
 ```bash
 npm install
-
----
-
-## ✅ You are now fully scaffolded
-
-At this point:
-- Repo structure is correct
-- Config files are production-safe
-- Documentation is locked
-- No refactors needed later
-
-### Next logical step
-Say **“Start with `services/airtable.js`”**  
-and we’ll implement the Airtable client + field mapping cleanly and fast.
-
 npm run dev
 npm start
-
+```
