@@ -272,7 +272,7 @@
       <div class="head-actions">
         <div class="chip">
           <span>ID</span>
-          <input id="dealerIdInput" placeholder="DEALER-0001" />
+          <input id="dealerIdInput" placeholder="AA123 or AA123,BB456" />
         </div>
         <button id="loadBtn" class="btn btn-primary">Load</button>
         <button id="resetBtn" class="btn btn-ghost">Reset</button>
@@ -304,7 +304,7 @@
             <div class="v" id="kpiLive">–</div>
           </div>
           <div class="stat">
-            <div class="t">Dealer ID</div>
+            <div class="t">Dealer ID(s)</div>
             <div class="v" id="kpiDealer">–</div>
           </div>
           <div class="tip" id="rotatingTip">
@@ -337,10 +337,11 @@
 
 <script>
   // ==============================
-  // Storefront wiring (Airtable-backed)
+  // Storefront wiring (Supabase-backed)
   // Routes expected:
   //  - GET  /api/public/dealer/:dealerId
-  //  - GET  /api/public/dealer/:dealerId/vehicles
+  //  - GET  /api/public/vehicles?dealerId=AA123
+  //  - GET  /api/public/vehicles?dealerIds=AA123,BB456,CC789
   //  - POST /api/public/dealer/:dealerId/requests
   // ==============================
 
@@ -371,8 +372,9 @@
   };
 
   const state = {
-    dealerId: "",
+    dealerIds: [],
     dealer: null,
+    dealers: [],
     vehicles: [],
     filtered: [],
     tipIndex: 0,
@@ -414,21 +416,18 @@
   }
 
   function pickImageUrl(vehicle){
-    const direct = vehicle?.cloudinaryImageUrls || vehicle?.cloudinaryImageUrl || vehicle?.imageUrl || vehicle?.logoUrl;
+    const direct = vehicle?.imageUrls || vehicle?.image_urls || vehicle?.imageUrl || vehicle?.logoUrl;
     if(typeof direct === "string" && (direct.startsWith("https://") || direct.startsWith("http://"))){
       // If it's a list of urls in one string, take the first url-ish token
-      const cleaned = direct.replaceAll(",", " ").replaceAll("
-", " ").trim();
+      const cleaned = direct.replaceAll(",", " ").replaceAll("\n", " ").trim();
       const parts = cleaned.split(" ").filter(Boolean);
       const first = parts.find(p => p.startsWith("https://") || p.startsWith("http://"));
       return first || direct;
     }
 
-    const att = vehicle?.images || vehicle?.["Main Photo"] || vehicle?.["Gallery Photos"] || vehicle?.["Logo"];
-    if(Array.isArray(att) && att.length){
-      const first = att[0];
+    if(Array.isArray(direct) && direct.length){
+      const first = direct[0];
       if(typeof first === "string" && (first.startsWith("https://") || first.startsWith("http://"))) return first;
-      if(first && typeof first === "object" && typeof first.url === "string") return first.url;
     }
 
     return "";
@@ -436,20 +435,39 @@
 
   function setBranding(){
     const d = state.dealer;
-    const dealerId = state.dealerId;
+    const ids = state.dealerIds || [];
 
-    ui.kpiDealer.textContent = dealerId ? dealerId : "–";
+    ui.kpiDealer.textContent = ids.length ? ids.join(", ") : "–";
 
-    if(!d){
+    if(!ids.length){
       ui.dealerName.textContent = "Dealer Storefront";
       ui.dealerSub.textContent = "Live inventory · Serious viewings only";
-      ui.heroTitle.textContent = "Enter a dealer ID to view what’s actually available";
+      ui.heroTitle.textContent = "Enter dealer IDs to view what’s actually available";
       ui.heroLead.textContent = "This storefront only shows vehicles that are available right now. No ghost cars. No wasted viewings.";
       ui.dealerLogo.innerHTML = "C";
       return;
     }
 
-    const name = d.dealerName || d.name || d.dealerId || dealerId;
+    if(ids.length > 1){
+      const names = (state.dealers || []).map((dealer) => dealer?.name).filter(Boolean);
+      ui.dealerName.textContent = "Combined Inventory";
+      ui.dealerSub.textContent = `Dealers: ${(names.length ? names : ids).join(", ")}`;
+      ui.heroTitle.textContent = "Multi-dealer inventory";
+      ui.heroLead.textContent = "Browse combined inventory and request a viewing in seconds.";
+      ui.dealerLogo.innerHTML = "C";
+      return;
+    }
+
+    if(!d){
+      ui.dealerName.textContent = ids[0];
+      ui.dealerSub.textContent = "Live inventory · Serious viewings only";
+      ui.heroTitle.textContent = ids[0] + " — Live inventory";
+      ui.heroLead.textContent = "Browse available vehicles and request a viewing in seconds.";
+      ui.dealerLogo.innerHTML = "C";
+      return;
+    }
+
+    const name = d.dealerName || d.name || d.dealerId || ids[0];
     ui.dealerName.textContent = name;
     ui.dealerSub.textContent = (d.status ? ("Status: " + d.status) : "Live inventory") + " · Serious viewings only";
     ui.heroTitle.textContent = name + " — Live inventory";
@@ -505,6 +523,7 @@
       const vehicleId = v.vehicleId || "";
 
       const pills = [
+        (state.dealerIds.length > 1 ? (`Dealer ${v.dealerId || ""}`) : ""),
         v.mileage ? (Number(v.mileage).toLocaleString() + " km") : "",
         v.transmission || "",
         v.fuelType || "",
@@ -544,7 +563,7 @@
             customerName: name,
             phone,
             notes: `Storefront request. Vehicle: ${title}. Link: ${location.href}`,
-          });
+          }, v.dealerId || state.dealerIds[0]);
           alert("Request sent. The dealer will contact you shortly.");
         }catch(e){
           alert("Could not send request: " + (e?.message || "error"));
@@ -589,13 +608,16 @@
     return data.dealer;
   }
 
-  async function loadVehicles(dealerId){
-    const data = await fetchOk("/api/public/dealer/" + encodeURIComponent(dealerId) + "/vehicles", { method:"GET" });
+  async function loadVehicles(ids){
+    const clean = ids.filter(Boolean);
+    const qs = clean.length === 1 ? `dealerId=${encodeURIComponent(clean[0])}` : `dealerIds=${encodeURIComponent(clean.join(","))}`;
+    const data = await fetchOk(`/api/public/vehicles?${qs}`, { method:"GET" });
     return Array.isArray(data.vehicles) ? data.vehicles : [];
   }
 
-  async function createRequest(payload){
-    const data = await fetchOk("/api/public/dealer/" + encodeURIComponent(state.dealerId) + "/requests", {
+  async function createRequest(payload, dealerId){
+    const targetDealer = String(dealerId || "").trim();
+    const data = await fetchOk("/api/public/dealer/" + encodeURIComponent(targetDealer) + "/requests", {
       method:"POST",
       headers:{ "Content-Type":"application/json" },
       body: JSON.stringify(payload)
@@ -603,56 +625,82 @@
     return data;
   }
 
-  function setDealerInUrl(dealerId){
-    const clean = String(dealerId || "").trim();
-    const next = clean ? ("/storefront/" + encodeURIComponent(clean)) : "/storefront/";
+  function setDealerInUrl(ids){
+    const clean = (ids || []).map(id => String(id || "").trim()).filter(Boolean);
+    const params = new URLSearchParams();
+    if(clean.length === 1){
+      params.set("dealerId", clean[0]);
+    } else if(clean.length > 1){
+      params.set("dealerIds", clean.join(","));
+    }
+    const next = params.toString() ? ("/storefront/?" + params.toString()) : "/storefront/";
     history.replaceState({}, "", next);
   }
 
-  function parseDealerFromPath(){
-    const parts = String(location.pathname || "").split("/").filter(Boolean);
-    // /storefront/:dealerId
-    if(parts.length >= 2 && parts[0].toLowerCase() === "storefront"){
-      return parts[1];
+  function parseDealerIds(){
+    const params = new URLSearchParams(location.search || "");
+    const dealerIds = params.get("dealerIds");
+    const dealerId = params.get("dealerId");
+    if(dealerIds){
+      return dealerIds.split(",").map(s => s.trim()).filter(Boolean);
     }
-    return "";
+    if(dealerId){
+      return [dealerId.trim()];
+    }
+    const parts = String(location.pathname || "").split("/").filter(Boolean);
+    if(parts.length >= 2 && parts[0].toLowerCase() === "storefront"){
+      return [parts[1]];
+    }
+    return [];
   }
 
   async function doLoad(){
-    const dealerId = String(ui.dealerIdInput.value || "").trim();
-    if(!dealerId) return alert("Enter a dealer ID.");
-    if(!isValidDealerId(dealerId)) return alert("Dealer ID format is invalid.");
+    const raw = String(ui.dealerIdInput.value || "").trim();
+    const ids = raw.split(",").map(v => v.trim()).filter(Boolean);
+    if(!ids.length) return alert("Enter at least one dealer ID.");
+    if(ids.length > 3) return alert("You can load up to 3 dealers at once.");
+    if(ids.some(id => !isValidDealerId(id))) return alert("One or more dealer IDs are invalid.");
 
-    state.dealerId = dealerId;
-    setDealerInUrl(dealerId);
+    state.dealerIds = ids;
+    setDealerInUrl(ids);
 
-    ui.kpiDealer.textContent = dealerId;
+    ui.kpiDealer.textContent = ids.join(", ");
     setLoading();
 
     try{
-      state.dealer = await loadDealer(dealerId);
+      if(ids.length === 1){
+        state.dealer = await loadDealer(ids[0]);
+        state.dealers = state.dealer ? [state.dealer] : [];
+      } else {
+        state.dealer = null;
+        const dealers = await Promise.all(ids.map(id => loadDealer(id).catch(() => null)));
+        state.dealers = dealers.filter(Boolean);
+      }
       setBranding();
 
-      const vehicles = await loadVehicles(dealerId);
+      const vehicles = await loadVehicles(ids);
       state.vehicles = (vehicles || []).map(v => ({
         ...v,
-        vehicleId: v.vehicleId || v["Vehicle ID"] || v["vehicleId"] || "",
-        make: v.make || v.Make || "",
-        model: v.model || v.Model || "",
-        year: v.year || v.Year || "",
-        price: v.price || v.Price || 0,
-        mileage: v.mileage || v.Mileage || "",
-        status: v.status || v.Status || "available",
-        title: v.title || v.Title || "",
-        transmission: v.transmission || v["Transmission"] || "",
-        fuelType: v.fuelType || v["Fuel Type"] || "",
-        color: v.color || v.Color || "",
+        dealerId: v.dealerId || v.dealer_id || "",
+        vehicleId: v.vehicleId || v.vehicle_id || "",
+        make: v.make || "",
+        model: v.model || "",
+        year: v.year || "",
+        price: v.price || 0,
+        mileage: v.mileage || "",
+        status: v.status || "available",
+        title: v.title || "",
+        transmission: v.transmission || "",
+        fuelType: v.fuelType || v.fuel_type || "",
+        color: v.color || "",
+        imageUrls: v.imageUrls || v.image_urls || [],
       }));
 
       state.filtered = [...state.vehicles];
       applySearch();
     }catch(e){
       state.dealer = null;
+      state.dealers = [];
       state.vehicles = [];
       state.filtered = [];
       setBranding();
@@ -667,14 +715,15 @@
   }
 
   function reset(){
-    state.dealerId = "";
+    state.dealerIds = [];
     state.dealer = null;
+    state.dealers = [];
     state.vehicles = [];
     state.filtered = [];
 
     ui.dealerIdInput.value = "";
     ui.searchInput.value = "";
-    setDealerInUrl("");
+    setDealerInUrl([]);
     setBranding();
     ui.kpiLive.textContent = "–";
     ui.kpiDealer.textContent = "–";
@@ -702,7 +751,7 @@
   ui.howBtn.addEventListener("click", ()=>{
     alert("How it works:
 
-1) Enter the Dealer ID
+1) Enter 1-3 dealer IDs (comma-separated)
 2) Browse available vehicles
 3) Request viewing
 
@@ -710,9 +759,9 @@ The dealer confirms by phone/WhatsApp.");
   });
 
   (function boot(){
-    const dealerId = parseDealerFromPath();
-    if(dealerId){
-      ui.dealerIdInput.value = dealerId;
+    const dealerIds = parseDealerIds();
+    if(dealerIds.length){
+      ui.dealerIdInput.value = dealerIds.join(", ");
       doLoad();
     } else {
       setBranding();
