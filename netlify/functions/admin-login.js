@@ -3,16 +3,9 @@
 const { createSupabaseClient, createSupabaseServiceClient } = require("../../services/supabase");
 const { jsonResponse, parseJsonBody } = require("./_helpers");
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
-
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return jsonResponse(405, { ok: false, error: "Method not allowed." });
-  }
-
-  if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
-    return jsonResponse(500, { ok: false, error: "Admin credentials are not configured." });
   }
 
   const payload = parseJsonBody(event);
@@ -27,12 +20,8 @@ exports.handler = async (event) => {
     return jsonResponse(400, { ok: false, error: "Email and password are required." });
   }
 
-  if (email !== ADMIN_EMAIL.toLowerCase() || password !== ADMIN_PASSWORD) {
-    return jsonResponse(401, { ok: false, error: "Invalid admin credentials." });
-  }
-
   const supabase = createSupabaseClient();
-  const { data, error } = await supabase.auth.signInWithPassword({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error || !data?.session) {
     return jsonResponse(401, { ok: false, error: error?.message || "Login failed." });
