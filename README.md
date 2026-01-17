@@ -87,8 +87,6 @@ Required:
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
-- `ADMIN_EMAIL` (Netlify env for admin login)
-- `ADMIN_PASSWORD` (Netlify env for admin login)
 
 ---
 
