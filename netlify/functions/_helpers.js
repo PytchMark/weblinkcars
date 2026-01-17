@@ -56,6 +56,25 @@ async function requireAuth(event, allowedRoles = []) {
     return { error: jsonResponse(401, { ok: false, error: "Missing authorization token." }) };
   }
 
+  const secret = process.env.JWT_SECRET;
+  if (secret) {
+    try {
+      const decoded = jwt.verify(token, secret);
+      if (decoded?.role && (!allowedRoles.length || allowedRoles.includes(decoded.role))) {
+        return {
+          supabase: createSupabaseServiceClient(),
+          profile: {
+            id: decoded.profileId || null,
+            role: decoded.role,
+            dealer_id: decoded.dealerId || null,
+          },
+        };
+      }
+    } catch (_err) {
+      // Fall through to Supabase auth.
+    }
+  }
+
   const supabase = createSupabaseServiceClient();
   const { data, error } = await supabase.auth.getUser(token);
   if (error || !data?.user) {

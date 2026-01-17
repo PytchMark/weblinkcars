@@ -109,7 +109,9 @@
       display:flex;align-items:center;justify-content:center;
       font-weight:900;font-size:18px;color:var(--brand);
       box-shadow: 0 12px 24px rgba(220,38,38,.14);
+      overflow:hidden;
     }
+    .badge img{width:100%;height:100%;object-fit:cover}
     .title{font-size:18px;font-weight:900}
     .sub{font-size:12px;color:var(--muted);margin-top:3px}
 
@@ -337,7 +339,9 @@
     <div class="shell login-shell" id="loginView">
       <div class="login-card">
         <div class="brand">
-          <div class="badge">A</div>
+          <div class="badge">
+            <img src="https://res.cloudinary.com/dd8pjjxsm/image/upload/v1768193442/mediaexclusive/dealers/0000/vehicles/VEH-0069/qbu8lvupz54ufudhcnv6.jpg" alt="Media Exclusive" />
+          </div>
           <div>
             <div class="title">Admin Console</div>
             <div class="sub">Manage dealers, inventory, and viewing requests.</div>
@@ -345,7 +349,7 @@
         </div>
 
         <div class="hint">
-          Sign in with your Supabase admin email and password.
+          Sign in with your admin credentials to manage the platform.
         </div>
 
         <div class="row two">
@@ -377,7 +381,9 @@
     <div class="shell hidden" id="dashView">
       <div class="top">
         <div class="brand">
-          <div class="badge">A</div>
+          <div class="badge">
+            <img src="https://res.cloudinary.com/dd8pjjxsm/image/upload/v1768193442/mediaexclusive/dealers/0000/vehicles/VEH-0069/qbu8lvupz54ufudhcnv6.jpg" alt="Media Exclusive" />
+          </div>
           <div>
             <div class="title">Carsales Admin</div>
             <div class="sub" id="whoami">Admin</div>
