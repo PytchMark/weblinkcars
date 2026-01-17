@@ -44,7 +44,7 @@ function requireAdmin(event) {
     if (decoded?.role !== "admin") {
       return { error: jsonResponse(403, { ok: false, error: "Insufficient permissions." }) };
     }
-    return { admin: decoded };
+    return { admin: decoded, supabase: createSupabaseServiceClient() };
   } catch (_err) {
     return { error: jsonResponse(401, { ok: false, error: "Invalid or expired token." }) };
   }

@@ -1,6 +1,6 @@
 "use strict";
 
-const { jsonResponse, parseJsonBody, requireAuth } = require("./_helpers");
+const { jsonResponse, parseJsonBody, requireAdmin } = require("./_helpers");
 
 function parseVehicleIdFromPath(path) {
   const parts = (path || "").split("/").filter(Boolean);
@@ -23,7 +23,7 @@ function parseImageUrls(value) {
 }
 
 exports.handler = async (event) => {
-  const auth = await requireAuth(event, ["admin"]);
+  const auth = requireAdmin(event);
   if (auth.error) return auth.error;
 
   const supabase = auth.supabase;

@@ -1,11 +1,15 @@
 "use strict";
 
-const { createSupabaseClient, createSupabaseServiceClient } = require("../../services/supabase");
+const jwt = require("jsonwebtoken");
 const { jsonResponse, parseJsonBody } = require("./_helpers");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return jsonResponse(405, { ok: false, error: "Method not allowed." });
+  }
+
+  if (!event.body) {
+    return jsonResponse(400, { ok: false, error: "Missing request body." });
   }
 
   const payload = parseJsonBody(event);
@@ -20,36 +24,30 @@ exports.handler = async (event) => {
     return jsonResponse(400, { ok: false, error: "Email and password are required." });
   }
 
-  const supabase = createSupabaseClient();
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
-  if (error || !data?.session) {
-    return jsonResponse(401, { ok: false, error: error?.message || "Login failed." });
+  const adminEmail = String(process.env.ADMIN_EMAIL || "").trim().toLowerCase();
+  const adminPassword = String(process.env.ADMIN_PASSWORD || "").trim();
+  if (!adminEmail || !adminPassword) {
+    return jsonResponse(500, { ok: false, error: "Admin credentials not configured." });
   }
 
-  const adminClient = createSupabaseServiceClient();
-  const { data: profile, error: profileError } = await adminClient
-    .from("profiles")
-    .select("id, role, dealer_id")
-    .eq("id", data.user.id)
-    .single();
-
-  if (profileError || !profile) {
-    return jsonResponse(403, { ok: false, error: "Profile not found." });
+  if (email !== adminEmail || password !== adminPassword) {
+    return jsonResponse(403, { ok: false, error: "Invalid credentials" });
   }
 
-  if (profile.role !== "admin") {
-    return jsonResponse(403, { ok: false, error: "Not an admin account." });
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    return jsonResponse(500, { ok: false, error: "JWT secret not configured." });
   }
+
+  const token = jwt.sign({ role: "admin", email }, secret, { expiresIn: "12h" });
 
   return jsonResponse(200, {
     ok: true,
+    role: "admin",
     session: {
-      accessToken: data.session.access_token,
-      refreshToken: data.session.refresh_token,
-      expiresIn: data.session.expires_in,
-      tokenType: data.session.token_type,
+      accessToken: token,
+      tokenType: "Bearer",
+      expiresIn: 60 * 60 * 12,
     },
-    profile,
   });
 };
