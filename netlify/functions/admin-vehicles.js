@@ -1,7 +1,6 @@
 "use strict";
 
-const { createSupabaseServiceClient } = require("../../services/supabase");
-const { jsonResponse, parseJsonBody, requireAdmin } = require("./_helpers");
+const { jsonResponse, parseJsonBody, requireAuth } = require("./_helpers");
 
 function parseVehicleIdFromPath(path) {
   const parts = (path || "").split("/").filter(Boolean);
@@ -24,10 +23,10 @@ function parseImageUrls(value) {
 }
 
 exports.handler = async (event) => {
-  const auth = requireAdmin(event);
+  const auth = await requireAuth(event, ["admin"]);
   if (auth.error) return auth.error;
 
-  const supabase = createSupabaseServiceClient();
+  const supabase = auth.supabase;
 
   if (event.httpMethod === "GET") {
     const { dealer_id, status } = event.queryStringParameters || {};
