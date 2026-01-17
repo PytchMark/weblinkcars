@@ -3,26 +3,6 @@
   functions = "netlify/functions"
 
 [[redirects]]
-  from = "/"
-  to = "/storefront/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/storefront"
-  to = "/storefront/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/dealer"
-  to = "/dealer/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/admin"
-  to = "/admin/index.html"
-  status = 200
-
-[[redirects]]
   from = "/api/public/dealer/*/requests"
   to = "/.netlify/functions/public-requests"
   status = 200
