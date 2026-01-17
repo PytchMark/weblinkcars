@@ -69,6 +69,26 @@
       backdrop-filter: blur(12px);
     }
 
+    .login-shell{
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:32px 18px;
+    }
+    .login-card{
+      width:min(520px, 100%);
+      background:rgba(255,255,255,.96);
+      border-radius:22px;
+      border:1px solid var(--line);
+      box-shadow:0 22px 48px rgba(15,23,42,.18);
+      padding:28px 26px;
+      display:grid;
+      gap:14px;
+    }
+    .login-card .brand{margin-bottom:4px}
+    .login-links{display:flex;gap:8px;flex-wrap:wrap}
+
     .top{
       display:flex;
       flex-wrap:wrap;
@@ -314,8 +334,8 @@
   <div class="wrap">
 
     <!-- LOGIN -->
-    <div class="shell" id="loginView">
-      <div class="top">
+    <div class="shell login-shell" id="loginView">
+      <div class="login-card">
         <div class="brand">
           <div class="badge">A</div>
           <div>
@@ -323,24 +343,15 @@
             <div class="sub">Manage dealers, inventory, and viewing requests.</div>
           </div>
         </div>
-        <div class="actions">
-          <a class="btn btn-ghost" href="/storefront">← Storefront</a>
-          <a class="btn btn-ghost" href="/dealer">Dealer ↗</a>
-        </div>
-      </div>
 
-      <div class="panel">
-        <h3>Sign in</h3>
         <div class="hint">
-          Login uses Cloud Run env vars:
-          <span class="mono">ADMIN_USERNAME</span> /
-          <span class="mono">ADMIN_PASSWORD</span>.
+          Sign in with the admin email/password configured in Netlify environment variables.
         </div>
 
-        <div class="row two" style="margin-top:10px">
+        <div class="row two">
           <div class="field">
-            <div class="label"><span>Username</span><span>Required</span></div>
-            <input id="username" class="input" placeholder="admin" autocomplete="username" />
+            <div class="label"><span>Email</span><span>Required</span></div>
+            <input id="email" class="input" placeholder="admin@company.com" autocomplete="username" />
           </div>
           <div class="field">
             <div class="label"><span>Password</span><span>Required</span></div>
@@ -354,6 +365,11 @@
         </div>
 
         <div class="statusline" id="loginStatus"></div>
+
+        <div class="login-links">
+          <a class="btn btn-ghost" href="/storefront">← Storefront</a>
+          <a class="btn btn-ghost" href="/dealer">Dealer ↗</a>
+        </div>
       </div>
     </div>
 
@@ -424,7 +440,7 @@
           <!-- Dealer actions -->
           <div class="panel" id="dealerActions" style="margin-top:10px">
             <h3>Create dealer</h3>
-            <div class="hint">Adds a dealer profile (Dealers table). Passcode is stored hashed server-side.</div>
+            <div class="hint">Adds a dealer profile and (optional) Supabase login credentials.</div>
 
             <div class="field">
               <div class="label"><span>Dealer name</span><span>Required</span></div>
@@ -445,9 +461,15 @@
               </div>
             </div>
 
-            <div class="field">
-              <div class="label"><span>Passcode</span><span>Optional</span></div>
-              <input id="newDealerPasscode" class="input" placeholder="123456" />
+            <div class="row two">
+              <div class="field">
+                <div class="label"><span>Login email</span><span>Optional</span></div>
+                <input id="newDealerEmail" class="input" placeholder="dealer@company.com" />
+              </div>
+              <div class="field">
+                <div class="label"><span>Temporary password</span><span>Optional</span></div>
+                <input id="newDealerPassword" class="input" placeholder="Create a temp password" />
+              </div>
             </div>
 
             <div class="row two">
@@ -517,8 +539,8 @@
                     <th>Inventory</th>
                     <th>Available</th>
                     <th>Requests</th>
-                    <th>New</th>
                     <th>Booked</th>
+                    <th>Sold</th>
                   </tr>
                 </thead>
                 <tbody id="sBody"></tbody>
@@ -538,7 +560,7 @@
       <div class="mhead">
         <div>
           <h3 id="mTitle">Dealer editor</h3>
-          <div class="sub" style="font-size:12px;color:var(--muted)" id="mSub">Edit dealer profile and reset passcode.</div>
+          <div class="sub" style="font-size:12px;color:var(--muted)" id="mSub">Edit dealer profile details.</div>
         </div>
         <button class="xbtn" id="mClose" type="button" aria-label="Close">×</button>
       </div>
@@ -570,30 +592,13 @@
         </div>
 
         <div class="field">
-          <div class="label"><span>Passcode (optional set)</span></div>
-          <input id="mDealerPasscode" class="input" placeholder="123456" />
-        </div>
-
-        <div class="field">
           <div class="label"><span>Logo URL</span></div>
           <input id="mDealerLogo" class="input" placeholder="https://..." />
         </div>
-
         <div class="panel" style="margin-top:10px">
-          <h3>Passcode reset</h3>
-          <div class="hint">Reset generates a fresh passcode for the dealer (server returns it once).</div>
-
-          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:space-between; margin-top:8px">
-            <div class="pill" style="box-shadow:none">
-              <span class="dot on" style="box-shadow:none"></span>
-              <span>Latest passcode: <span class="mono" id="mPasscode">••••••</span></span>
-            </div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap">
-              <button class="btn btn-danger" id="btnResetPasscode" type="button">Reset passcode</button>
-              <button class="btn btn-primary" id="btnSaveDealer" type="button">Save changes</button>
-            </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:flex-end; margin-top:8px">
+            <button class="btn btn-primary" id="btnSaveDealer" type="button">Save changes</button>
           </div>
-
           <div class="statusline" id="mStatus"></div>
         </div>
       </div>
@@ -611,8 +616,7 @@
     const API = {
       login: () => "/api/admin/login",
       dealers: () => "/api/admin/dealers",
-      resetPass: () => "/api/admin/reset-passcode",
-      inventory: () => "/api/admin/inventory",
+      vehicles: () => "/api/admin/vehicles",
       requests: () => "/api/admin/requests",
       summary: (month) => `/api/admin/dealers/summary?month=${encodeURIComponent(month)}`
     };
@@ -622,7 +626,7 @@
     const ui = {
       loginView: el("loginView"),
       dashView: el("dashView"),
-      username: el("username"),
+      email: el("email"),
       password: el("password"),
       btnLogin: el("btnLogin"),
       btnDemo: el("btnDemo"),
@@ -656,7 +660,8 @@
       newDealerName: el("newDealerName"),
       newDealerId: el("newDealerId"),
       newDealerStatus: el("newDealerStatus"),
-      newDealerPasscode: el("newDealerPasscode"),
+      newDealerEmail: el("newDealerEmail"),
+      newDealerPassword: el("newDealerPassword"),
       newDealerWhatsApp: el("newDealerWhatsApp"),
       newDealerLogo: el("newDealerLogo"),
       btnCreateDealer: el("btnCreateDealer"),
@@ -684,10 +689,7 @@
       mDealerId: el("mDealerId"),
       mDealerStatus: el("mDealerStatus"),
       mDealerWhatsApp: el("mDealerWhatsApp"),
-      mDealerPasscode: el("mDealerPasscode"),
       mDealerLogo: el("mDealerLogo"),
-      mPasscode: el("mPasscode"),
-      btnResetPasscode: el("btnResetPasscode"),
       btnSaveDealer: el("btnSaveDealer"),
       mStatus: el("mStatus"),
 
@@ -705,8 +707,7 @@
       vehicles: [],
       requests: [],
 
-      selectedDealer: null,
-      demoPasscodes: {}
+      selectedDealer: null
     };
 
     // ========= Boot =========
@@ -731,6 +732,7 @@
     function wire(){
       ui.btnLogin.addEventListener("click", doLogin);
       ui.btnDemo.addEventListener("click", enterDemo);
+      ui.email.addEventListener("keydown", (e)=>{ if(e.key==="Enter") doLogin(); });
       ui.password.addEventListener("keydown", (e)=>{ if(e.key==="Enter") doLogin(); });
 
       ui.btnLogout.addEventListener("click", logout);
@@ -752,7 +754,6 @@
       ui.mClose.addEventListener("click", closeDealerModal);
       ui.dealerBackdrop.addEventListener("click", (e)=>{ if(e.target === ui.dealerBackdrop) closeDealerModal(); });
 
-      ui.btnResetPasscode.addEventListener("click", resetPasscode);
       ui.btnSaveDealer.addEventListener("click", saveDealerChanges);
 
       ui.btnLoadSummary.addEventListener("click", () => loadSummary().catch(()=>{}));
@@ -760,9 +761,9 @@
 
     // ========= Auth =========
     async function doLogin(){
-      const username = (ui.username.value||"").trim();
+      const email = (ui.email.value||"").trim().toLowerCase();
       const password = (ui.password.value||"").trim();
-      if(!username || !password) return setLoginStatus("Enter username + password.", true);
+      if(!email || !password) return setLoginStatus("Enter email + password.", true);
 
       setLoginStatus("Signing in…", false);
 
@@ -770,7 +771,7 @@
         const res = await fetch(API.login(), {
           method:"POST",
           headers:{ "Content-Type":"application/json", "Accept":"application/json" },
-          body: JSON.stringify({ username, password })
+          body: JSON.stringify({ email, password })
         });
         const data = await safeJson(res);
 
@@ -779,11 +780,11 @@
         }
 
         state.apiOnline = true;
-        state.token = data.token;
+        state.token = data.session?.accessToken || "";
         sessionStorage.setItem("ADMIN_TOKEN", state.token);
 
         setApi("Live", "on");
-        enterDashboard(username);
+        enterDashboard(email);
         toast("Signed in.", "success");
       }catch(e){
         setApi("Error", "err");
@@ -912,7 +913,7 @@
 
         // These two are optional — if you haven't built them yet, UI won't break.
         if(state.tab==="inventory"){
-          const res = await fetch(API.inventory(), { headers: authHeaders() });
+          const res = await fetch(API.vehicles(), { headers: authHeaders() });
           const data = await safeJson(res);
           if(res.ok && data?.ok) state.vehicles = Array.isArray(data.vehicles) ? data.vehicles : [];
           else state.vehicles = [];
@@ -959,16 +960,13 @@
           throw new Error(data?.error || `Summary failed (${res.status})`);
         }
 
-        // expected:
-        // data.summary: { month, totals:{ dealers, activeDealers, availableVehicles, requests }, dealers:[{ dealerId,name,status,inventory,available,requests,new,booked }] }
-        const s = data.summary || {};
-        const totals = s.totals || {};
-        const dealers = Array.isArray(s.dealers) ? s.dealers : [];
+        const totals = data.totals || {};
+        const dealers = Array.isArray(data.dealers) ? data.dealers : [];
 
         ui.sDealers.textContent = String(totals.dealers ?? dealers.length ?? 0);
-        ui.sActive.textContent = String(totals.activeDealers ?? dealers.filter(d => (d.status||"").toLowerCase()==="active").length);
-        ui.sAvailable.textContent = String(totals.availableVehicles ?? dealers.reduce((a,d)=>a+Number(d.available||0),0));
-        ui.sRequests.textContent = String(totals.requests ?? dealers.reduce((a,d)=>a+Number(d.requests||0),0));
+        ui.sActive.textContent = String(dealers.filter(d => (d.status||"").toLowerCase()==="active").length);
+        ui.sAvailable.textContent = String(dealers.reduce((a,d)=>a+Number(d.kpis?.available||0),0));
+        ui.sRequests.textContent = String(dealers.reduce((a,d)=>a+Number(d.kpis?.requests||0),0));
 
         ui.sBody.innerHTML = "";
         ui.sCount.textContent = String(dealers.length);
@@ -988,11 +986,11 @@
             const tr = document.createElement("tr");
             tr.appendChild(cell(`<div style="font-weight:900">${esc(d.name||d.dealerId||"—")}</div><div class="mono" style="color:var(--muted)">${esc(d.dealerId||"")}</div>`));
             tr.appendChild(cell(statusPill(d.status)));
-            tr.appendChild(cell(`<span class="badgeMini">${Number(d.inventory||0)} vehicles</span>`));
-            tr.appendChild(cell(`<span class="badgeMini">${Number(d.available||0)} available</span>`));
-            tr.appendChild(cell(`<span class="badgeMini">${Number(d.requests||0)} req</span>`));
-            tr.appendChild(cell(`<span class="badgeMini">${Number(d.new||0)} new</span>`));
-            tr.appendChild(cell(`<span class="badgeMini">${Number(d.booked||0)} booked</span>`));
+            tr.appendChild(cell(`<span class="badgeMini">${Number(d.kpis?.inventory||0)} vehicles</span>`));
+            tr.appendChild(cell(`<span class="badgeMini">${Number(d.kpis?.available||0)} available</span>`));
+            tr.appendChild(cell(`<span class="badgeMini">${Number(d.kpis?.requests||0)} req</span>`));
+            tr.appendChild(cell(`<span class="badgeMini">${Number(d.kpis?.booked||0)} booked</span>`));
+            tr.appendChild(cell(`<span class="badgeMini">${Number(d.kpis?.sold||0)} sold</span>`));
             ui.sBody.appendChild(tr);
           });
         }
@@ -1010,16 +1008,18 @@
         dealerId: d.dealerId,
         name: d.name,
         status: d.status,
-        inventory: Number(d.vehicleCount||0),
-        available: Math.max(0, Number(d.vehicleCount||0)-2),
-        requests: 0,
-        new: 0,
-        booked: 0
+        kpis: {
+          inventory: Number(d.vehicleCount||0),
+          available: Math.max(0, Number(d.vehicleCount||0)-2),
+          requests: 0,
+          booked: 0,
+          sold: 0,
+        },
       }));
 
       ui.sDealers.textContent = String(dealers.length);
       ui.sActive.textContent = String(dealers.filter(d=> (d.status||"").toLowerCase()==="active").length);
-      ui.sAvailable.textContent = String(dealers.reduce((a,d)=>a+Number(d.available||0),0));
+      ui.sAvailable.textContent = String(dealers.reduce((a,d)=>a+Number(d.kpis?.available||0),0));
       ui.sRequests.textContent = "0";
       ui.sBody.innerHTML = "";
       ui.sCount.textContent = String(dealers.length);
@@ -1029,11 +1029,11 @@
         const tr = document.createElement("tr");
         tr.appendChild(cell(`<div style="font-weight:900">${esc(d.name||d.dealerId||"—")}</div><div class="mono" style="color:var(--muted)">${esc(d.dealerId||"")}</div>`));
         tr.appendChild(cell(statusPill(d.status)));
-        tr.appendChild(cell(`<span class="badgeMini">${Number(d.inventory||0)} vehicles</span>`));
-        tr.appendChild(cell(`<span class="badgeMini">${Number(d.available||0)} available</span>`));
-        tr.appendChild(cell(`<span class="badgeMini">${Number(d.requests||0)} req</span>`));
-        tr.appendChild(cell(`<span class="badgeMini">${Number(d.new||0)} new</span>`));
-        tr.appendChild(cell(`<span class="badgeMini">${Number(d.booked||0)} booked</span>`));
+        tr.appendChild(cell(`<span class="badgeMini">${Number(d.kpis?.inventory||0)} vehicles</span>`));
+        tr.appendChild(cell(`<span class="badgeMini">${Number(d.kpis?.available||0)} available</span>`));
+        tr.appendChild(cell(`<span class="badgeMini">${Number(d.kpis?.requests||0)} req</span>`));
+        tr.appendChild(cell(`<span class="badgeMini">${Number(d.kpis?.booked||0)} booked</span>`));
+        tr.appendChild(cell(`<span class="badgeMini">${Number(d.kpis?.sold||0)} sold</span>`));
         ui.sBody.appendChild(tr);
       });
     }
@@ -1085,10 +1085,10 @@
           tr.addEventListener("click", ()=> openDealerModal(r));
 
           tr.appendChild(cell(`<div style="font-weight:900">${esc(r.name||"—")}</div><div style="color:var(--muted);font-size:11px;margin-top:2px">Click to edit</div>`));
-          tr.appendChild(cell(`<span class="mono">${esc(r.dealerId||"—")}</span>`));
+          tr.appendChild(cell(`<span class="mono">${esc(r.dealer_id||r.dealerId||"—")}</span>`));
           tr.appendChild(cell(statusPill(r.status)));
           tr.appendChild(cell(r.whatsapp ? `<span class="badgeMini">+${esc(r.whatsapp)}</span>` : `<span style="color:var(--muted)">—</span>`));
-          tr.appendChild(cell(r.logoUrl ? `<a class="mono" href="${escAttr(r.logoUrl)}" target="_blank" rel="noreferrer">logo</a>` : `<span style="color:var(--muted)">—</span>`));
+          tr.appendChild(cell(r.logo_url || r.logoUrl ? `<a class="mono" href="${escAttr(r.logo_url || r.logoUrl)}" target="_blank" rel="noreferrer">logo</a>` : `<span style="color:var(--muted)">—</span>`));
 
           const actions = document.createElement("td");
           actions.innerHTML = `<button class="btn btn-ghost" type="button">Edit</button>`;
@@ -1096,20 +1096,20 @@
         }
 
         if(state.tab==="inventory"){
-          tr.appendChild(cell(`<div class="mono">${esc(r.vehicleId||r.id||"—")}</div><div style="color:var(--muted);font-size:11px;margin-top:2px">${esc(r.make||"")} ${esc(r.model||"")}</div>`));
-          tr.appendChild(cell(`<span class="badgeMini">${esc(r.dealerId||"—")}</span>`));
+          tr.appendChild(cell(`<div class="mono">${esc(r.vehicle_id||r.vehicleId||r.id||"—")}</div><div style="color:var(--muted);font-size:11px;margin-top:2px">${esc(r.make||"")} ${esc(r.model||"")}</div>`));
+          tr.appendChild(cell(`<span class="badgeMini">${esc(r.dealer_id||r.dealerId||"—")}</span>`));
           tr.appendChild(cell(`<span class="badgeMini">${esc(r.status||"—")}</span>`));
           tr.appendChild(cell(`<div style="font-weight:900">${money(r.price)}</div>`));
-          tr.appendChild(cell(`<span class="mono">${esc(r.updatedAt||r.createdAt||"—")}</span>`));
+          tr.appendChild(cell(`<span class="mono">${esc(r.updated_at||r.created_at||r.updatedAt||r.createdAt||"—")}</span>`));
         }
 
         if(state.tab==="requests"){
-          tr.appendChild(cell(`<div style="font-weight:900">${esc(r.name||r.customer||"—")}</div><div style="color:var(--muted);font-size:11px;margin-top:2px">${esc(r.phone||"")}</div>`));
-          tr.appendChild(cell(`<div class="mono">${esc(r.vehicleId||"—")}</div>`));
-          tr.appendChild(cell(`<span class="badgeMini">${esc(r.dealerId||"—")}</span>`));
-          tr.appendChild(cell(`<span class="badgeMini">${esc(r.type||"—")}</span>`));
+          tr.appendChild(cell(`<div style="font-weight:900">${esc(r.customer_name||r.customer||"—")}</div><div style="color:var(--muted);font-size:11px;margin-top:2px">${esc(r.phone||"")}</div>`));
+          tr.appendChild(cell(`<div class="mono">${esc(r.vehicle_id||r.vehicleId||"—")}</div>`));
+          tr.appendChild(cell(`<span class="badgeMini">${esc(r.dealer_id||r.dealerId||"—")}</span>`));
+          tr.appendChild(cell(`<span class="badgeMini">${esc(r.request_type||r.type||"—")}</span>`));
           tr.appendChild(cell(`<span class="badgeMini">${esc(r.status||"—")}</span>`));
-          tr.appendChild(cell(`<span class="mono">${esc(r.createdAt||"—")}</span>`));
+          tr.appendChild(cell(`<span class="mono">${esc(r.created_at||r.createdAt||"—")}</span>`));
         }
 
         if(state.tab==="settings"){
@@ -1124,11 +1124,9 @@
 
     function settingsRows(){
       return [
-        { item:"ADMIN_USERNAME", value:"(Cloud Run env)", hint:"Admin login username" },
-        { item:"ADMIN_PASSWORD", value:"(Cloud Run env)", hint:"Admin login password" },
-        { item:"JWT_SECRET", value:"(Cloud Run env)", hint:"Token signing secret" },
-        { item:"AIRTABLE_API_KEY", value:"(Cloud Run env)", hint:"Airtable PAT token" },
-        { item:"AIRTABLE_BASE_ID", value:"(Cloud Run env)", hint:"Airtable base id" },
+        { item:"SUPABASE_URL", value:"(Netlify env)", hint:"Supabase project URL" },
+        { item:"SUPABASE_ANON_KEY", value:"(Netlify env)", hint:"Public anon key (frontend)" },
+        { item:"SUPABASE_SERVICE_ROLE_KEY", value:"(Netlify env)", hint:"Server-only service role key" },
       ];
     }
 
@@ -1138,9 +1136,10 @@
         name: (ui.newDealerName.value||"").trim(),
         dealerId: (ui.newDealerId.value||"").trim(),
         status: (ui.newDealerStatus.value||"active").toLowerCase(),
-        passcode: (ui.newDealerPasscode.value||"").trim(),
         whatsapp: digits(ui.newDealerWhatsApp.value||""),
         logoUrl: (ui.newDealerLogo.value||"").trim(),
+        email: (ui.newDealerEmail.value||"").trim(),
+        password: (ui.newDealerPassword.value||"").trim(),
       };
 
       if(!payload.name || !payload.dealerId){
@@ -1155,9 +1154,6 @@
       try{
         if(!state.apiOnline){
           seedDemoIfNeeded();
-          const pass = payload.passcode || String(Math.floor(100000 + Math.random()*900000));
-          state.demoPasscodes[payload.dealerId] = pass;
-
           state.dealers.unshift({
             name: payload.name,
             dealerId: payload.dealerId,
@@ -1167,7 +1163,7 @@
             vehicleCount: 0
           });
 
-          ui.dealerActionStatus.textContent = `Created (demo). Passcode: ${pass}`;
+          ui.dealerActionStatus.textContent = "Created (demo).";
           toast("Dealer created.", "success");
           clearCreateInputs();
           render();
@@ -1182,8 +1178,7 @@
         const data = await safeJson(res);
         if(!res.ok || !data?.ok) throw new Error(data?.error || "Create failed");
 
-        const pass = data.passcode ? ` New passcode: ${data.passcode}` : "";
-        ui.dealerActionStatus.textContent = `Created.${pass}`;
+        ui.dealerActionStatus.textContent = "Created.";
         toast("Dealer created.", "success");
         clearCreateInputs();
         await refresh();
@@ -1197,7 +1192,8 @@
     function clearCreateInputs(){
       ui.newDealerName.value = "";
       ui.newDealerId.value = "";
-      ui.newDealerPasscode.value = "";
+      ui.newDealerEmail.value = "";
+      ui.newDealerPassword.value = "";
       ui.newDealerWhatsApp.value = "";
       ui.newDealerLogo.value = "";
       ui.newDealerStatus.value = "active";
@@ -1210,13 +1206,10 @@
       ui.mStatus.classList.remove("error");
 
       ui.mDealerName.value = dealer.name || "";
-      ui.mDealerId.value = dealer.dealerId || "";
+      ui.mDealerId.value = dealer.dealer_id || dealer.dealerId || "";
       ui.mDealerStatus.value = (dealer.status || "active").toLowerCase();
       ui.mDealerWhatsApp.value = dealer.whatsapp || "";
-      ui.mDealerPasscode.value = "";
-      ui.mDealerLogo.value = dealer.logoUrl || "";
-
-      ui.mPasscode.textContent = state.demoPasscodes[dealer.dealerId] || "••••••";
+      ui.mDealerLogo.value = dealer.logo_url || dealer.logoUrl || "";
 
       ui.dealerBackdrop.classList.add("show");
       ui.dealerBackdrop.setAttribute("aria-hidden","false");
@@ -1236,7 +1229,6 @@
         name: (ui.mDealerName.value||"").trim(),
         status: (ui.mDealerStatus.value||"active").toLowerCase(),
         whatsapp: digits(ui.mDealerWhatsApp.value||""),
-        passcode: (ui.mDealerPasscode.value||"").trim(), // optional
         logoUrl: (ui.mDealerLogo.value||"").trim(),
       };
 
@@ -1251,7 +1243,7 @@
 
       try{
         if(!state.apiOnline){
-          const idx = state.dealers.findIndex(d => d.dealerId === state.selectedDealer.dealerId);
+          const idx = state.dealers.findIndex(d => (d.dealer_id || d.dealerId) === (state.selectedDealer.dealer_id || state.selectedDealer.dealerId));
           if(idx > -1) state.dealers[idx] = { ...state.dealers[idx], ...payload };
           ui.mStatus.textContent = "Saved (demo).";
           toast("Dealer updated.", "success");
@@ -1259,8 +1251,8 @@
           return;
         }
 
-        const res = await fetch(API.dealers(), {
-          method:"POST",
+        const res = await fetch(`/api/admin/dealers/${encodeURIComponent(payload.dealerId)}`, {
+          method:"PATCH",
           headers:{ ...authHeaders(), "Content-Type":"application/json", "Accept":"application/json" },
           body: JSON.stringify(payload)
         });
@@ -1277,44 +1269,6 @@
       }
     }
 
-    async function resetPasscode(){
-      if(!state.selectedDealer) return;
-
-      const dealerId = (ui.mDealerId.value||"").trim();
-      if(!dealerId) return;
-
-      ui.mStatus.textContent = "Resetting…";
-      ui.mStatus.classList.remove("error");
-
-      try{
-        if(!state.apiOnline){
-          const newPass = String(Math.floor(100000 + Math.random()*900000));
-          state.demoPasscodes[dealerId] = newPass;
-          ui.mPasscode.textContent = newPass;
-          ui.mStatus.textContent = "Passcode reset (demo).";
-          toast("Passcode reset.", "success");
-          return;
-        }
-
-        const res = await fetch(API.resetPass(), {
-          method:"POST",
-          headers:{ ...authHeaders(), "Content-Type":"application/json", "Accept":"application/json" },
-          body: JSON.stringify({ dealerId })
-        });
-        const data = await safeJson(res);
-        if(!res.ok || !data?.ok) throw new Error(data?.error || "Reset failed");
-
-        if(data.passcode) ui.mPasscode.textContent = String(data.passcode);
-        ui.mStatus.textContent = "Passcode reset.";
-        toast("Passcode reset.", "success");
-        await refresh();
-      }catch(e){
-        ui.mStatus.textContent = "Failed to reset: " + (e?.message||"error");
-        ui.mStatus.classList.add("error");
-        toast("Reset failed.", "error");
-      }
-    }
-
     // ========= Demo seed =========
     function seedDemoIfNeeded(){
       if(state.dealers.length) return;
@@ -1323,7 +1277,6 @@
         { name:"Island Auto", dealerId:"DEALER-0002", status:"active", whatsapp:"8765550199", logoUrl:"", vehicleCount:7 },
         { name:"Mobay Cars", dealerId:"DEALER-0003", status:"paused", whatsapp:"", logoUrl:"", vehicleCount:3 },
       ];
-      state.demoPasscodes["DEALER-0001"] = "123456";
     }
 
     // ========= UI helpers =========
@@ -1390,4 +1343,3 @@
   </script>
 </body>
 </html>
-
