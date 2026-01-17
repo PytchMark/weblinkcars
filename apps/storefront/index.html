@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Dealer Storefront · Live Inventory</title>
-  <meta name="description" content="Live car inventory. Only available vehicles. Book serious viewings." />
+  <title>Dealer Storefront · Shop Inventory</title>
+  <meta name="description" content="Browse live inventory, book a viewing, and buy with confidence." />
 
   <style>
     /* ==============================
@@ -263,16 +263,18 @@
   <div class="wrap">
     <div class="head-row">
       <div class="brand">
-        <div class="logo" id="dealerLogo">C</div>
+        <div class="logo" id="dealerLogo">
+          <img src="https://res.cloudinary.com/dd8pjjxsm/image/upload/v1768193442/mediaexclusive/dealers/0000/vehicles/VEH-0069/qbu8lvupz54ufudhcnv6.jpg" alt="Media Exclusive" />
+        </div>
         <div class="brand-meta">
           <div class="name" id="dealerName">Dealer Storefront</div>
-          <div class="sub" id="dealerSub">Live inventory · Serious viewings only</div>
+          <div class="sub" id="dealerSub">Fresh inventory · Ready for viewings</div>
         </div>
       </div>
       <div class="head-actions">
         <div class="chip">
-          <span>ID</span>
-          <input id="dealerIdInput" placeholder="AA123 or AA123,BB456" />
+          <span>Dealer ID</span>
+          <input id="dealerIdInput" placeholder="DEALER-0001 or DEALER-0001,DEALER-0002" />
         </div>
         <button id="loadBtn" class="btn btn-primary">Load</button>
         <button id="resetBtn" class="btn btn-ghost">Reset</button>
@@ -286,11 +288,10 @@
     <div class="wrap">
       <div class="hero-grid">
         <div class="hero-card">
-          <div class="eyebrow"><span class="dot"></span> Real inventory · Real buyers</div>
-          <h1 id="heroTitle">Enter a dealer ID to view what’s actually available</h1>
+          <div class="eyebrow"><span class="dot"></span> Trusted inventory · Ready to move</div>
+          <h1 id="heroTitle">Enter a dealer ID to explore live showroom inventory</h1>
           <p class="lead" id="heroLead">
-            This storefront only shows vehicles that are available right now.
-            No ghost cars. No wasted viewings.
+            See what’s available today, compare options, and request a viewing in minutes.
           </p>
           <div class="hero-actions">
             <button class="btn btn-primary" id="scrollBtn">Browse inventory</button>
@@ -308,7 +309,7 @@
             <div class="v" id="kpiDealer">–</div>
           </div>
           <div class="tip" id="rotatingTip">
-            Tip: Use a live video viewing before visiting in person.
+            Tip: Book a live video walk-through before you visit in person.
           </div>
         </aside>
       </div>
@@ -331,13 +332,13 @@
 
 <footer>
   <div class="wrap">
-    Sell what you have. Only show cars to serious buyers. · Built by Pytch LLC © <span id="year"></span>
+    Turn inventory into appointments. Simple, fast, and buyer-ready. · Built by Pytch LLC © <span id="year"></span>
   </div>
 </footer>
 
 <script>
   // ==============================
-  // Storefront wiring (Supabase-backed)
+  // Storefront wiring
   // Routes expected:
   //  - GET  /api/public/dealer/:dealerId
   //  - GET  /api/public/vehicles?dealerId=AA123
@@ -441,10 +442,11 @@
 
     if(!ids.length){
       ui.dealerName.textContent = "Dealer Storefront";
-      ui.dealerSub.textContent = "Live inventory · Serious viewings only";
-      ui.heroTitle.textContent = "Enter dealer IDs to view what’s actually available";
-      ui.heroLead.textContent = "This storefront only shows vehicles that are available right now. No ghost cars. No wasted viewings.";
-      ui.dealerLogo.innerHTML = "C";
+      ui.dealerSub.textContent = "Fresh inventory · Ready for viewings";
+      ui.heroTitle.textContent = "Enter dealer IDs to explore live showroom inventory";
+      ui.heroLead.textContent = "See what’s available today, compare options, and request a viewing in minutes.";
+      ui.dealerLogo.innerHTML =
+        '<img src="https://res.cloudinary.com/dd8pjjxsm/image/upload/v1768193442/mediaexclusive/dealers/0000/vehicles/VEH-0069/qbu8lvupz54ufudhcnv6.jpg" alt="Media Exclusive" />';
       return;
     }
 
@@ -454,30 +456,36 @@
       ui.dealerSub.textContent = `Dealers: ${(names.length ? names : ids).join(", ")}`;
       ui.heroTitle.textContent = "Multi-dealer inventory";
       ui.heroLead.textContent = "Browse combined inventory and request a viewing in seconds.";
-      ui.dealerLogo.innerHTML = "C";
+      ui.dealerLogo.innerHTML =
+        '<img src="https://res.cloudinary.com/dd8pjjxsm/image/upload/v1768193442/mediaexclusive/dealers/0000/vehicles/VEH-0069/qbu8lvupz54ufudhcnv6.jpg" alt="Media Exclusive" />';
       return;
     }
 
     if(!d){
       ui.dealerName.textContent = ids[0];
-      ui.dealerSub.textContent = "Live inventory · Serious viewings only";
+      ui.dealerSub.textContent = "Fresh inventory · Ready for viewings";
       ui.heroTitle.textContent = ids[0] + " — Live inventory";
       ui.heroLead.textContent = "Browse available vehicles and request a viewing in seconds.";
-      ui.dealerLogo.innerHTML = "C";
+      ui.dealerLogo.innerHTML =
+        '<img src="https://res.cloudinary.com/dd8pjjxsm/image/upload/v1768193442/mediaexclusive/dealers/0000/vehicles/VEH-0069/qbu8lvupz54ufudhcnv6.jpg" alt="Media Exclusive" />';
       return;
     }
 
     const name = d.dealerName || d.name || d.dealerId || ids[0];
     ui.dealerName.textContent = name;
-    ui.dealerSub.textContent = (d.status ? ("Status: " + d.status) : "Live inventory") + " · Serious viewings only";
+    ui.dealerSub.textContent = (d.status ? ("Status: " + d.status) : "Live inventory") + " · Ready for viewings";
     ui.heroTitle.textContent = name + " — Live inventory";
     ui.heroLead.textContent = "Browse available vehicles and request a viewing in seconds.";
 
-    const logoUrl = d.logoUrl || d.logo;
+    const logoUrl =
+      d.logoUrl ||
+      d.logo ||
+      "https://res.cloudinary.com/dd8pjjxsm/image/upload/v1768193442/mediaexclusive/dealers/0000/vehicles/VEH-0069/qbu8lvupz54ufudhcnv6.jpg";
     if(logoUrl && (String(logoUrl).startsWith("https://") || String(logoUrl).startsWith("http://"))){
       ui.dealerLogo.innerHTML = `<img src="${esc(logoUrl)}" alt="${esc(name)}" />`;
     } else {
-      ui.dealerLogo.innerHTML = esc(String(name || "C").slice(0,1).toUpperCase());
+      ui.dealerLogo.innerHTML =
+        '<img src="https://res.cloudinary.com/dd8pjjxsm/image/upload/v1768193442/mediaexclusive/dealers/0000/vehicles/VEH-0069/qbu8lvupz54ufudhcnv6.jpg" alt="Media Exclusive" />';
     }
   }
 
